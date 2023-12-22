@@ -40,9 +40,9 @@ test:
 	go test -gcflags=-l -cover -race ${TEST_FLAGS} -v ./...
 
 docker:
-	# sudo docker build -t megaease/easeprobe:${RELEASE_VER}-amd64 -f ${MKFILE_DIR}/resources/Dockerfile ${MKFILE_DIR}
-	sudo docker buildx build --platform linux/amd64 --squash -t megaease/easeprobe:${RELEASE_VER}-linux-amd64 -f ${MKFILE_DIR}/resources/Dockerfile ${MKFILE_DIR}
-	docker save megaease/easeprobe:${RELEASE_VER}-linux-amd64 | gzip > ${RELEASE_DIR}/easeprobe-linux-amd64.tar.gz
+	# sudo docker build -t wfusion/easeprobe:${RELEASE_VER}-amd64 -f ${MKFILE_DIR}/resources/Dockerfile ${MKFILE_DIR}
+	sudo docker buildx build --platform linux/amd64 --squash -t wfusion/easeprobe:${RELEASE_VER}-linux-amd64 -f ${MKFILE_DIR}/resources/Dockerfile ${MKFILE_DIR}
+	docker save wfusion/easeprobe:${RELEASE_VER}-linux-amd64 | gzip > ${RELEASE_DIR}/easeprobe-linux-amd64.tar.gz
 
 clean:
 	@rm -rf ${MKFILE_DIR}/build

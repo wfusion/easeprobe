@@ -389,6 +389,7 @@ Currently, EaseProbe supports the following XPath functions:
 - `x_float` - get the float value from the XPath/RegExp query result.
 - `x_time` - get the time value from the XPath/RegExp query result.
 - `x_duration` - get the duration value from the XPath/RegExp query result.
+- `x_len` - get the array length from the XPath/RegExp query result.
 
 **3) Build-in Functions**
 
@@ -1928,6 +1929,11 @@ settings:
     age: 7 #  max of access log file age. default: 7 days
     backups: 5 # max of access log file backups. default: 5
     compress: true # compress the access log file. default: true
+  
+  # Prometheus config 
+  prometheus:
+    mode: push # or pull to export http port
+    addr: "10.8.104.51:9091" # push gateway address
 
   # Date format
   # Date

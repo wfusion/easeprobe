@@ -1,9 +1,7 @@
 <h1>EaseProbe</h1>
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/megaease/easeprobe)](https://goreportcard.com/report/github.com/megaease/easeprobe)
-[![codecov](https://codecov.io/gh/megaease/easeprobe/branch/main/graph/badge.svg?token=L7SR8X6SRN)](https://codecov.io/gh/megaease/easeprobe)
-[![Build](https://github.com/megaease/easeprobe/actions/workflows/test.yaml/badge.svg)](https://github.com/megaease/easeprobe/actions/workflows/test.yaml)
-[![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/megaease/easeprobe)](https://github.com/megaease/easeprobe/blob/main/go.mod)
+[![Go Report Card](https://goreportcard.com/badge/github.com/wfusion/easeprobe)](https://goreportcard.com/report/github.com/wfusion/easeprobe)
+[![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/wfusion/easeprobe)](https://github.com/wfusion/easeprobe/blob/main/go.mod)
 [![Join MegaEase Slack](https://img.shields.io/badge/slack-megaease-brightgreen?logo=slack)](https://join.slack.com/t/openmegaease/shared_invite/zt-upo7v306-lYPHvVwKnvwlqR0Zl2vveA)
 
 
@@ -13,6 +11,7 @@ EaseProbe is a simple, standalone, and lightweight tool that can do health/statu
 
 <h2>Table of Contents</h2>
 
+- [0. What's New for This Fork](#0-whats-new-for-this-fork)
 - [1. Introduction](#1-introduction)
   - [1.1 Probe](#11-probe)
   - [1.2 Notification](#12-notification)
@@ -28,6 +27,10 @@ EaseProbe is a simple, standalone, and lightweight tool that can do health/statu
 - [7. Community](#7-community)
 - [8. License](#8-license)
 
+# 0. What's New for This Fork
+
+- Support prometheus push gateway mode
+- Support x_len for array expression evaluation
 
 # 1. Introduction
 
@@ -99,13 +102,13 @@ The metrics are prefixed with `easeprobe_` and are documented in [Prometheus Met
 # 2. Getting Started
 
 You can get started with EaseProbe, by any of the following methods:
-* Download the release for your platform from https://github.com/megaease/easeprobe/releases
-* Use the available EaseProbe docker image `docker run -it megaease/easeprobe`
+* Download the release for your platform from https://github.com/wfusion/easeprobe/releases
+* Use the available EaseProbe docker image `docker run -it wfusion/easeprobe`
 * Build `easeprobe` from sources
 
 ## 2.1 Build
 
-Compiler `Go 1.20+` (Generics Programming Support), checking the [Go Installation](https://go.dev/doc/install) to see how to install Go on your platform.
+Compiler `Go 1.18+` (Generics Programming Support), checking the [Go Installation](https://go.dev/doc/install) to see how to install Go on your platform.
 
 Use `make` to build and produce the `easeprobe` binary file. The executable is produced under the `build/bin` directory.
 
@@ -116,14 +119,14 @@ $ make
 
 Read the [User Manual](./docs/Manual.md) for detailed instructions on how to configure all EaseProbe parameters.
 
-Create a configuration file (eg. `$CWD/config.yaml`) using the configuration template at [./resources/config.yaml](https://raw.githubusercontent.com/megaease/easeprobe/main/resources/config.yaml), which includes the complete list of configuration parameters.
+Create a configuration file (eg. `$CWD/config.yaml`) using the configuration template at [./resources/config.yaml](https://raw.githubusercontent.com/wfusion/easeprobe/main/resources/config.yaml), which includes the complete list of configuration parameters.
 
 The following simple configuration example can be used to get started:
 
 ```YAML
 http: # http probes
   - name: EaseProbe Github
-    url: https://github.com/megaease/easeprobe
+    url: https://github.com/wfusion/easeprobe
 notify:
   log:
     - name: log file # local log file
