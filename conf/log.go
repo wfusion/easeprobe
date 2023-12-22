@@ -21,7 +21,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/megaease/easeprobe/global"
+	"github.com/wfusion/easeprobe/global"
 	"gopkg.in/natefinch/lumberjack.v2"
 
 	log "github.com/sirupsen/logrus"

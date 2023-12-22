@@ -27,9 +27,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe"
 	log "github.com/sirupsen/logrus"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe"
 )
 
 // Availability is the Availability JSON structure
@@ -200,22 +200,22 @@ func slaMarkdown(probers []probe.Prober, f Format) string {
 // SLAHTMLSection return the HTML format string to stat
 func SLAHTMLSection(r *probe.Result) string {
 
-	html := `
+	htmlTpl := `
 	<tr>
 		<td class="head" colspan="3"><b>%s</b> - %s<td>
 	</tr>
 	<tr>
 		<td class="data"><b>Availability</b><br><b>Uptime: </b>%s,  <b>Downtime: </b>%s  </td>
-		<td class="data"><b>SLA<b><br>%.2f%%</td>
+		<td class="data"><b>SLA: </b>%.2f%%<br><b>RTT: </b>%dms</td>
 		<td class="data"><b>Probe-Times</b><br><b>Total</b>: %d ( %s )</td>
 	</tr>
 	<tr>
 		<td  class="data" colspan="3"><b>Latest Probe</b>: %s - %s<br>%s<td>
 	</tr>
 	`
-	return fmt.Sprintf(html, r.Name, r.Endpoint,
+	return fmt.Sprintf(htmlTpl, r.Name, r.Endpoint,
 		DurationStr(r.Stat.UpTime), DurationStr(r.Stat.DownTime),
-		r.SLAPercent(),
+		r.SLAPercent(), r.RoundTripTime.Milliseconds(),
 		r.Stat.Total, SLAStatusText(r.Stat, HTML),
 		FormatTime(r.StartTime),
 		r.Status.Emoji()+" "+r.Status.String(), JSONEscape(r.Message))

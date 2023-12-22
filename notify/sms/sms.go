@@ -21,13 +21,13 @@ package sms
 import (
 	"errors"
 
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/notify/sms/conf"
-	"github.com/megaease/easeprobe/notify/sms/nexmo"
-	"github.com/megaease/easeprobe/notify/sms/twilio"
-	"github.com/megaease/easeprobe/notify/sms/yunpian"
-	"github.com/megaease/easeprobe/report"
 	log "github.com/sirupsen/logrus"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/notify/sms/conf"
+	"github.com/wfusion/easeprobe/notify/sms/nexmo"
+	"github.com/wfusion/easeprobe/notify/sms/twilio"
+	"github.com/wfusion/easeprobe/notify/sms/yunpian"
+	"github.com/wfusion/easeprobe/report"
 )
 
 // NotifyConfig implements the structure of Sms

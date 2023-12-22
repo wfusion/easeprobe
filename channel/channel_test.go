@@ -20,9 +20,9 @@ package channel
 import (
 	"testing"
 
-	"github.com/megaease/easeprobe/notify"
-	"github.com/megaease/easeprobe/probe"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/notify"
+	"github.com/wfusion/easeprobe/probe"
 )
 
 func TestChannel(t *testing.T) {

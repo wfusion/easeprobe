@@ -20,7 +20,7 @@ package eval
 import (
 	"strings"
 
-	"github.com/megaease/easeprobe/global"
+	"github.com/wfusion/easeprobe/global"
 )
 
 // -----------------------------------------------------------------------------
@@ -81,16 +81,18 @@ const (
 	Bool
 	Time
 	Duration
+	LengthVariable
 )
 
 var varTypeToStr = map[VarType]string{
-	Unknown:  "unknown",
-	Int:      "int",
-	Float:    "float",
-	String:   "string",
-	Bool:     "bool",
-	Time:     "time",
-	Duration: "duration",
+	Unknown:        "unknown",
+	Int:            "int",
+	Float:          "float",
+	String:         "string",
+	Bool:           "bool",
+	Time:           "time",
+	Duration:       "duration",
+	LengthVariable: "length_variable",
 }
 
 var strToVarType = global.ReverseMap(varTypeToStr)

@@ -23,11 +23,11 @@ import (
 	"reflect"
 	"testing"
 
-	"bou.ke/monkey"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe/base"
-	"github.com/megaease/easeprobe/probe/ssh"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe/base"
+	"github.com/wfusion/easeprobe/probe/ssh"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 )
 
 func newHost(t *testing.T) *Host {
@@ -98,9 +98,9 @@ func TestHost(t *testing.T) {
 
 	localHostInfo := hostInfo
 	var s *ssh.Server
-	monkey.PatchInstanceMethod(reflect.TypeOf(s), "RunSSHCmd", func(_ *ssh.Server) (string, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(s), "RunSSHCmd", func(_ *ssh.Server) (string, error) {
 		return localHostInfo, nil
-	})
+	}).Reset()
 
 	server := &host.Servers[0]
 	server.Config(global.ProbeSettings{})
@@ -191,22 +191,21 @@ func TestHost(t *testing.T) {
 	assert.Contains(t, message, "invalid cpu output")
 
 	// bad format
-	monkey.PatchInstanceMethod(reflect.TypeOf(s), "RunSSHCmd", func(_ *ssh.Server) (string, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(s), "RunSSHCmd", func(_ *ssh.Server) (string, error) {
 		return "", nil
-	})
+	}).Reset()
 	status, message = server.DoProbe()
 	assert.False(t, status)
 	assert.Contains(t, message, "invalid output")
 
 	// run ssh failed
-	monkey.PatchInstanceMethod(reflect.TypeOf(s), "RunSSHCmd", func(_ *ssh.Server) (string, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(s), "RunSSHCmd", func(_ *ssh.Server) (string, error) {
 		return "", errors.New("ssh error")
-	})
+	}).Reset()
 	status, message = server.DoProbe()
 	assert.False(t, status)
 	assert.Contains(t, message, "ssh error")
 
-	monkey.UnpatchAll()
 }
 
 func TestLoad(t *testing.T) {
@@ -241,9 +240,9 @@ func TestLoad(t *testing.T) {
 
 	localHostInfo := hostInfo
 	var s *ssh.Server
-	monkey.PatchInstanceMethod(reflect.TypeOf(s), "RunSSHCmd", func(_ *ssh.Server) (string, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(s), "RunSSHCmd", func(_ *ssh.Server) (string, error) {
 		return localHostInfo, nil
-	})
+	}).Reset()
 
 	status, message := server.DoProbe()
 	assert.True(t, status)
@@ -263,7 +262,6 @@ func TestLoad(t *testing.T) {
 	assert.False(t, status)
 	assert.Contains(t, message, "Load Average threshold m1 alert!")
 
-	monkey.UnpatchAll()
 }
 
 func TestBadParse(t *testing.T) {

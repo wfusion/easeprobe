@@ -22,10 +22,10 @@ import (
 	"reflect"
 	"testing"
 
-	"bou.ke/monkey"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/report"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/report"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 	"gopkg.in/gomail.v2"
 )
 
@@ -57,14 +57,14 @@ func TestEmail(t *testing.T) {
 	err = conf.SendMail("title", "message")
 	assert.Error(t, err, "invalid syntax")
 
-	monkey.Patch(gomail.NewDialer, func(_ string, _ int, _, _ string) *gomail.Dialer {
+	defer gomonkey.ApplyFunc(gomail.NewDialer, func(_ string, _ int, _, _ string) *gomail.Dialer {
 		return &gomail.Dialer{}
-	})
+	}).Reset()
 
 	var d *gomail.Dialer
-	monkey.PatchInstanceMethod(reflect.TypeOf(d), "DialAndSend", func(_ *gomail.Dialer, _ ...*gomail.Message) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(d), "DialAndSend", func(_ *gomail.Dialer, _ ...*gomail.Message) error {
 		return errors.New("send error")
-	})
+	}).Reset()
 	conf.Server = "smtp.example.com:25"
 	err = conf.SendMail("title", "message")
 	assert.Error(t, err, "send error")
@@ -73,9 +73,9 @@ func TestEmail(t *testing.T) {
 	err = conf.SendMail("title", "message")
 	assert.Error(t, err, "send error")
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(d), "DialAndSend", func(_ *gomail.Dialer, _ ...*gomail.Message) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(d), "DialAndSend", func(_ *gomail.Dialer, _ ...*gomail.Message) error {
 		return nil
-	})
+	}).Reset()
 	err = conf.SendMail("title", "message")
 	assert.NoError(t, err)
 
@@ -83,5 +83,4 @@ func TestEmail(t *testing.T) {
 	err = conf.SendMail("title", "message")
 	assert.NoError(t, err)
 
-	monkey.UnpatchAll()
 }

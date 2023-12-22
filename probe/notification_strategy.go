@@ -17,7 +17,7 @@
 
 package probe
 
-import "github.com/megaease/easeprobe/global"
+import "github.com/wfusion/easeprobe/global"
 
 // NotificationStrategyData is the notification strategy
 type NotificationStrategyData struct {

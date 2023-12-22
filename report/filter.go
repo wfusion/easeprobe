@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe"
 
 	log "github.com/sirupsen/logrus"
 )

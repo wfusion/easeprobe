@@ -24,9 +24,9 @@ import (
 	"log/syslog"
 	"testing"
 
-	"bou.ke/monkey"
-	"github.com/megaease/easeprobe/global"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 )
 
 func TestLocalSyslog(t *testing.T) {
@@ -38,13 +38,12 @@ func TestLocalSyslog(t *testing.T) {
 	err = conf.Log("title", "message")
 	assert.NoError(t, err)
 
-	monkey.Patch(syslog.New, func(priority syslog.Priority, tag string) (*syslog.Writer, error) {
+	defer gomonkey.ApplyFunc(syslog.New, func(priority syslog.Priority, tag string) (*syslog.Writer, error) {
 		return nil, errors.New("new syslog error")
-	})
+	}).Reset()
 	err = conf.Config(global.NotifySettings{})
 	assertError(t, err, "new syslog error", false)
 
-	monkey.UnpatchAll()
 }
 
 func TestNetworkSyslog(t *testing.T) {
@@ -54,16 +53,16 @@ func TestNetworkSyslog(t *testing.T) {
 	conf.Network = "tcp"
 	conf.Host = "localhost:514"
 
-	monkey.Patch(syslog.Dial, func(_, _ string, _ syslog.Priority, _ string) (*syslog.Writer, error) {
+	defer gomonkey.ApplyFunc(syslog.Dial, func(_, _ string, _ syslog.Priority, _ string) (*syslog.Writer, error) {
 		return &syslog.Writer{}, nil
-	})
+	}).Reset()
 
 	err := conf.Config(global.NotifySettings{})
 	assert.NoError(t, err)
 
-	monkey.Patch(syslog.Dial, func(_, _ string, _ syslog.Priority, _ string) (*syslog.Writer, error) {
+	defer gomonkey.ApplyFunc(syslog.Dial, func(_, _ string, _ syslog.Priority, _ string) (*syslog.Writer, error) {
 		return nil, errors.New("dial syslog error")
-	})
+	}).Reset()
 	err = conf.Config(global.NotifySettings{})
 	assertError(t, err, "dial syslog error", false)
 
@@ -86,5 +85,4 @@ func TestNetworkSyslog(t *testing.T) {
 	err = conf.checkNetworkProtocol()
 	assertError(t, err, "protocol is required", true)
 
-	monkey.UnpatchAll()
 }

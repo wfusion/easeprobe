@@ -22,10 +22,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe"
-	"github.com/megaease/easeprobe/report"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe"
+	"github.com/wfusion/easeprobe/report"
 )
 
 func newDummyResult(name string) probe.Result {

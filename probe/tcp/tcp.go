@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe/base"
 	log "github.com/sirupsen/logrus"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe/base"
 )
 
 // TCP implements a config for TCP

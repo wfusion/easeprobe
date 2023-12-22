@@ -35,10 +35,10 @@ import (
 	"testing"
 	"time"
 
-	"bou.ke/monkey"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe/base"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe/base"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 )
 
 var ca = &x509.Certificate{
@@ -364,37 +364,37 @@ func TestTLSFail(t *testing.T) {
 	err = tlsConf.Config(global.ProbeSettings{})
 	assert.NotNil(t, err)
 
-	monkey.Patch(os.ReadFile, func(filename string) ([]byte, error) {
+	defer gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
 		return []byte("CA file Contents"), nil
-	})
+	}).Reset()
 
 	var rootCAs *x509.CertPool
-	monkey.PatchInstanceMethod(reflect.TypeOf(rootCAs), "AppendCertsFromPEM", func(*x509.CertPool, []byte) bool {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(rootCAs), "AppendCertsFromPEM", func(*x509.CertPool, []byte) bool {
 		return true
-	})
+	}).Reset()
 
 	err = tlsConf.Config(global.ProbeSettings{})
 	assert.Nil(t, err)
 
-	monkey.Patch(net.DialTimeout, func(network, address string, timeout time.Duration) (net.Conn, error) {
+	defer gomonkey.ApplyFunc(net.DialTimeout, func(network, address string, timeout time.Duration) (net.Conn, error) {
 		return &net.TCPConn{}, nil
-	})
+	}).Reset()
 	var conn *net.TCPConn
-	monkey.PatchInstanceMethod(reflect.TypeOf(conn), "Close", func(_ *net.TCPConn) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(conn), "Close", func(_ *net.TCPConn) error {
 		return nil
 	})
 	var tconn *tls.Conn
-	monkey.PatchInstanceMethod(reflect.TypeOf(tconn), "HandshakeContext", func(_ *tls.Conn, _ context.Context) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(tconn), "HandshakeContext", func(_ *tls.Conn, _ context.Context) error {
 		return errors.New("handshake error")
-	})
+	}).Reset()
 
 	s, m := tlsConf.DoProbe()
 	assert.False(t, s)
 	assert.Contains(t, m, "handshake error")
 
-	monkey.Patch(net.DialTimeout, func(network, address string, timeout time.Duration) (net.Conn, error) {
+	defer gomonkey.ApplyFunc(net.DialTimeout, func(network, address string, timeout time.Duration) (net.Conn, error) {
 		return nil, errors.New("dial error")
-	})
+	}).Reset()
 
 	s, m = tlsConf.DoProbe()
 	assert.False(t, s)

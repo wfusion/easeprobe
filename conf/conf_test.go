@@ -28,22 +28,22 @@ import (
 	"testing"
 	"time"
 
-	"bou.ke/monkey"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/notify"
-	"github.com/megaease/easeprobe/notify/discord"
-	"github.com/megaease/easeprobe/notify/email"
-	"github.com/megaease/easeprobe/notify/slack"
-	"github.com/megaease/easeprobe/notify/telegram"
-	"github.com/megaease/easeprobe/probe/client"
-	clientConf "github.com/megaease/easeprobe/probe/client/conf"
-	"github.com/megaease/easeprobe/probe/host"
-	httpProbe "github.com/megaease/easeprobe/probe/http"
-	"github.com/megaease/easeprobe/probe/shell"
-	"github.com/megaease/easeprobe/probe/ssh"
-	"github.com/megaease/easeprobe/probe/tcp"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/notify"
+	"github.com/wfusion/easeprobe/notify/discord"
+	"github.com/wfusion/easeprobe/notify/email"
+	"github.com/wfusion/easeprobe/notify/slack"
+	"github.com/wfusion/easeprobe/notify/telegram"
+	"github.com/wfusion/easeprobe/probe/client"
+	clientConf "github.com/wfusion/easeprobe/probe/client/conf"
+	"github.com/wfusion/easeprobe/probe/host"
+	httpProbe "github.com/wfusion/easeprobe/probe/http"
+	"github.com/wfusion/easeprobe/probe/shell"
+	"github.com/wfusion/easeprobe/probe/ssh"
+	"github.com/wfusion/easeprobe/probe/tcp"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 	"gopkg.in/yaml.v3"
 )
 
@@ -614,12 +614,11 @@ func TestConfig(t *testing.T) {
 	assert.NotNil(t, err)
 
 	os.Setenv("WEB_SITE", "https://easeprobe.com")
-	monkey.Patch(yaml.Marshal, func(v interface{}) ([]byte, error) {
+	defer gomonkey.ApplyFunc(yaml.Marshal, func(v interface{}) ([]byte, error) {
 		return nil, errors.New("marshal error")
-	})
+	}).Reset()
 	_, err = New(&file)
 	assert.Nil(t, err)
-	monkey.UnpatchAll()
 
 	_, err = New(&file)
 	assert.Nil(t, err)
@@ -684,14 +683,12 @@ func TestConfig(t *testing.T) {
 	_, err = New(&url)
 	assert.NotNil(t, err)
 
-	monkey.Patch(httpClient.NewRequest, func(method, url string, body io.Reader) (*http.Request, error) {
+	defer gomonkey.ApplyFunc(httpClient.NewRequest, func(method, url string, body io.Reader) (*http.Request, error) {
 		return nil, errors.New("error")
-	})
+	}).Reset()
 	url = "http://localhost"
 	_, err = New(&url)
 	assert.NotNil(t, err)
-
-	monkey.UnpatchAll()
 }
 
 func TestInitData(t *testing.T) {
@@ -718,12 +715,11 @@ func TestInitData(t *testing.T) {
 	c.initData()
 	os.RemoveAll("mydata")
 
-	monkey.Patch(os.MkdirAll, func(path string, perm os.FileMode) error {
+	defer gomonkey.ApplyFunc(os.MkdirAll, func(path string, perm os.FileMode) error {
 		return fmt.Errorf("MkdirAll")
-	})
+	}).Reset()
 	c.initData()
 	assert.NoDirExists(t, "mydata")
-	monkey.Unpatch(os.MkdirAll)
 }
 
 func TestEmptyNotifies(t *testing.T) {
@@ -762,13 +758,12 @@ func TestJSONSchema(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotEmpty(t, schema)
 
-	monkey.Patch(json.MarshalIndent, func(v interface{}, prefix, indent string) ([]byte, error) {
+	defer gomonkey.ApplyFunc(json.MarshalIndent, func(v interface{}, prefix, indent string) ([]byte, error) {
 		return nil, fmt.Errorf("error")
-	})
+	}).Reset()
 	schema, err = JSONSchema()
 	assert.NotNil(t, err)
 	assert.Empty(t, schema)
-	monkey.UnpatchAll()
 }
 
 func TestFileConfigModificaiton(t *testing.T) {

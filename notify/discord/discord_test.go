@@ -30,12 +30,12 @@ import (
 	"testing"
 	"time"
 
-	"bou.ke/monkey"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe"
-	"github.com/megaease/easeprobe/probe/base"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe"
+	"github.com/wfusion/easeprobe/probe/base"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 )
 
 func newDummyResult(name string) probe.Result {
@@ -142,9 +142,9 @@ func TestDiscordDryNotify(t *testing.T) {
 	assert.Contains(t, buf.String(), "[discord / dummyDiscord] Dry notify")
 	assert.Contains(t, buf.String(), "**Overall SLA Report (1/1)**")
 
-	monkey.Patch(json.Marshal, func(v interface{}) ([]byte, error) {
+	defer gomonkey.ApplyFunc(json.Marshal, func(v interface{}) ([]byte, error) {
 		return []byte(""), errors.New("marshal error")
-	})
+	}).Reset()
 	buf.Reset()
 	conf.Notify(r)
 	assert.Contains(t, buf.String(), "[discord / dummyDiscord] JSON Marshal Error")
@@ -152,8 +152,6 @@ func TestDiscordDryNotify(t *testing.T) {
 	buf.Reset()
 	conf.NotifyStat(p)
 	assert.Contains(t, buf.String(), "[discord / dummyDiscord] JSON Marshal Error")
-
-	monkey.UnpatchAll()
 }
 
 func TestDiscordNotify(t *testing.T) {
@@ -172,13 +170,13 @@ func TestDiscordNotify(t *testing.T) {
 	logrus.SetOutput(&buf)
 
 	var client *http.Client
-	monkey.PatchInstanceMethod(reflect.TypeOf(client), "Do", func(_ *http.Client, req *http.Request) (*http.Response, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(client), "Do", func(_ *http.Client, req *http.Request) (*http.Response, error) {
 		r := io.NopCloser(strings.NewReader(``))
 		return &http.Response{
 			StatusCode: 204,
 			Body:       r,
 		}, nil
-	})
+	}).Reset()
 
 	buf.Reset()
 	conf.Notify(r)
@@ -189,30 +187,30 @@ func TestDiscordNotify(t *testing.T) {
 	assert.Contains(t, buf.String(), "[discord / dummyDiscord / SLA] - successfully sent part [1/2]")
 
 	// error response
-	monkey.PatchInstanceMethod(reflect.TypeOf(client), "Do", func(_ *http.Client, req *http.Request) (*http.Response, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(client), "Do", func(_ *http.Client, req *http.Request) (*http.Response, error) {
 		r := io.NopCloser(strings.NewReader(`no permission`))
 		return &http.Response{
 			StatusCode: 403,
 			Body:       r,
 		}, nil
-	})
+	}).Reset()
 	buf.Reset()
 	r.Status = probe.StatusDown
 	conf.Notify(r)
 	assert.Contains(t, buf.String(), "no permission")
 
 	// io.ReadAll Error
-	monkey.Patch(io.ReadAll, func(r io.Reader) ([]byte, error) {
+	defer gomonkey.ApplyFunc(io.ReadAll, func(r io.Reader) ([]byte, error) {
 		return nil, errors.New("read error")
-	})
+	}).Reset()
 	buf.Reset()
 	conf.Notify(r)
 	assert.Contains(t, buf.String(), "read error")
 
 	// http.Client.Do error
-	monkey.PatchInstanceMethod(reflect.TypeOf(client), "Do", func(_ *http.Client, req *http.Request) (*http.Response, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(client), "Do", func(_ *http.Client, req *http.Request) (*http.Response, error) {
 		return nil, errors.New("http request error")
-	})
+	}).Reset()
 	conf.Retry.Times = 2
 	conf.Retry.Interval = time.Millisecond
 	buf.Reset()
@@ -220,22 +218,21 @@ func TestDiscordNotify(t *testing.T) {
 	assert.Contains(t, buf.String(), "http request error")
 
 	// http.NewRequest error
-	monkey.Patch(http.NewRequest, func(method, url string, body io.Reader) (*http.Request, error) {
+	defer gomonkey.ApplyFunc(http.NewRequest, func(method, url string, body io.Reader) (*http.Request, error) {
 		return nil, errors.New("http request error")
-	})
+	}).Reset()
 	buf.Reset()
 	conf.Notify(r)
 	assert.Contains(t, buf.String(), "http request error")
 
 	// json.Marshal error
-	monkey.Patch(json.Marshal, func(v interface{}) ([]byte, error) {
+	defer gomonkey.ApplyFunc(json.Marshal, func(v interface{}) ([]byte, error) {
 		return nil, errors.New("marshal error")
-	})
+	}).Reset()
 	buf.Reset()
 	conf.Notify(r)
 	assert.Contains(t, buf.String(), "marshal error")
 
-	monkey.UnpatchAll()
 }
 
 func TestNewField(t *testing.T) {

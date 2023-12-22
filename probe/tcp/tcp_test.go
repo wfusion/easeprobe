@@ -24,10 +24,10 @@ import (
 	"testing"
 	"time"
 
-	"bou.ke/monkey"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe/base"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe/base"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 	"golang.org/x/net/proxy"
 )
 
@@ -41,21 +41,21 @@ func TestTCP(t *testing.T) {
 	tcp.Config(global.ProbeSettings{})
 	assert.Equal(t, "tcp", tcp.ProbeKind)
 
-	monkey.Patch(net.DialTimeout, func(network, address string, timeout time.Duration) (net.Conn, error) {
+	defer gomonkey.ApplyFunc(net.DialTimeout, func(network, address string, timeout time.Duration) (net.Conn, error) {
 		return &net.TCPConn{}, nil
-	})
+	}).Reset()
 	var conn *net.TCPConn
-	monkey.PatchInstanceMethod(reflect.TypeOf(conn), "Close", func(_ *net.TCPConn) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(conn), "Close", func(_ *net.TCPConn) error {
 		return nil
-	})
+	}).Reset()
 
 	s, m := tcp.DoProbe()
 	assert.True(t, s)
 	assert.Contains(t, m, "Successfully")
 
-	monkey.Patch(net.DialTimeout, func(network, address string, timeout time.Duration) (net.Conn, error) {
+	defer gomonkey.ApplyFunc(net.DialTimeout, func(network, address string, timeout time.Duration) (net.Conn, error) {
 		return nil, fmt.Errorf("tcp dial error")
-	})
+	}).Reset()
 	s, m = tcp.DoProbe()
 	assert.False(t, s)
 	assert.Contains(t, m, "tcp dial error")
@@ -77,22 +77,21 @@ func TestTCPProxy(t *testing.T) {
 	assert.False(t, s)
 	assert.Contains(t, m, "Invalid proxy")
 
-	monkey.Patch(proxy.SOCKS5, func(network string, address string, auth *proxy.Auth, forward proxy.Dialer) (proxy.Dialer, error) {
+	defer gomonkey.ApplyFunc(proxy.SOCKS5, func(network string, address string, auth *proxy.Auth, forward proxy.Dialer) (proxy.Dialer, error) {
 		return &net.Dialer{}, nil
-	})
+	}).Reset()
 	var dialer *net.Dialer
-	monkey.PatchInstanceMethod(reflect.TypeOf(dialer), "Dial", func(_ *net.Dialer, network, address string) (net.Conn, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(dialer), "Dial", func(_ *net.Dialer, network, address string) (net.Conn, error) {
 		return &net.TCPConn{}, nil
-	})
+	}).Reset()
 	var conn *net.TCPConn
-	monkey.PatchInstanceMethod(reflect.TypeOf(conn), "Close", func(_ *net.TCPConn) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(conn), "Close", func(_ *net.TCPConn) error {
 		return nil
-	})
+	}).Reset()
 
 	tcp.Proxy = "socks5://localhost:1080"
 	s, m = tcp.DoProbe()
 	assert.True(t, s)
 	assert.Contains(t, m, "Successfully")
 
-	monkey.UnpatchAll()
 }

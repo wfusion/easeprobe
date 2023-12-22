@@ -24,10 +24,10 @@ import (
 	"reflect"
 	"testing"
 
-	"bou.ke/monkey"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe/client/conf"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe/client/conf"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -61,16 +61,16 @@ func TestMongo(t *testing.T) {
 	assert.Equal(t, connStr, mg.ConnStr)
 	assert.Nil(t, mg.ClientOpt.TLSConfig)
 
-	monkey.Patch(mongo.Connect, func(ctx context.Context, opts ...*options.ClientOptions) (*mongo.Client, error) {
+	defer gomonkey.ApplyFunc(mongo.Connect, func(ctx context.Context, opts ...*options.ClientOptions) (*mongo.Client, error) {
 		return &mongo.Client{}, nil
-	})
+	}).Reset()
 	var client *mongo.Client
-	monkey.PatchInstanceMethod(reflect.TypeOf(client), "Disconnect", func(_ *mongo.Client, _ context.Context) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(client), "Disconnect", func(_ *mongo.Client, _ context.Context) error {
 		return nil
-	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(client), "Ping", func(_ *mongo.Client, ctx context.Context, rp *readpref.ReadPref) error {
+	}).Reset()
+	defer gomonkey.ApplyMethod(reflect.TypeOf(client), "Ping", func(_ *mongo.Client, ctx context.Context, rp *readpref.ReadPref) error {
 		return nil
-	})
+	}).Reset()
 
 	s, m := mg.Probe()
 	assert.True(t, s)
@@ -87,9 +87,9 @@ func TestMongo(t *testing.T) {
 	assert.Contains(t, m, "Successfully")
 
 	var tc *global.TLS
-	monkey.PatchInstanceMethod(reflect.TypeOf(tc), "Config", func(_ *global.TLS) (*tls.Config, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(tc), "Config", func(_ *global.TLS) (*tls.Config, error) {
 		return &tls.Config{}, nil
-	})
+	}).Reset()
 
 	mg, err = New(conf)
 	assert.Equal(t, "Mongo", mg.Kind())
@@ -101,33 +101,32 @@ func TestMongo(t *testing.T) {
 	assert.Contains(t, m, "Successfully")
 
 	//Ping Error
-	monkey.PatchInstanceMethod(reflect.TypeOf(client), "Ping", func(_ *mongo.Client, ctx context.Context, rp *readpref.ReadPref) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(client), "Ping", func(_ *mongo.Client, ctx context.Context, rp *readpref.ReadPref) error {
 		return fmt.Errorf("ping error")
-	})
+	}).Reset()
 	s, m = mg.Probe()
 	assert.False(t, s)
 	assert.Contains(t, m, "ping error")
 
 	//Connect Error
-	monkey.Patch(mongo.Connect, func(ctx context.Context, opts ...*options.ClientOptions) (*mongo.Client, error) {
+	defer gomonkey.ApplyFunc(mongo.Connect, func(ctx context.Context, opts ...*options.ClientOptions) (*mongo.Client, error) {
 		return nil, fmt.Errorf("connect error")
-	})
+	}).Reset()
 	s, m = mg.Probe()
 	assert.False(t, s)
 	assert.Contains(t, m, "connect error")
 
-	monkey.UnpatchAll()
 }
 
 func TestDta(t *testing.T) {
 
-	monkey.Patch(mongo.Connect, func(ctx context.Context, opts ...*options.ClientOptions) (*mongo.Client, error) {
+	defer gomonkey.ApplyFunc(mongo.Connect, func(ctx context.Context, opts ...*options.ClientOptions) (*mongo.Client, error) {
 		return &mongo.Client{}, nil
-	})
+	}).Reset()
 	var client *mongo.Client
-	monkey.PatchInstanceMethod(reflect.TypeOf(client), "Disconnect", func(_ *mongo.Client, _ context.Context) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(client), "Disconnect", func(_ *mongo.Client, _ context.Context) error {
 		return nil
-	})
+	}).Reset()
 
 	conf := conf.Options{
 		Host:       "example.com",
@@ -160,16 +159,16 @@ func TestDta(t *testing.T) {
 	assert.Contains(t, err.Error(), "invalid JSON input")
 
 	var collection *mongo.Collection
-	monkey.PatchInstanceMethod(reflect.TypeOf(collection), "FindOne", func(_ *mongo.Collection, _ context.Context, _ interface{}, _ ...*options.FindOneOptions) *mongo.SingleResult {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(collection), "FindOne", func(_ *mongo.Collection, _ context.Context, _ interface{}, _ ...*options.FindOneOptions) *mongo.SingleResult {
 		return &mongo.SingleResult{}
-	})
+	}).Reset()
 	var result *mongo.SingleResult
-	monkey.PatchInstanceMethod(reflect.TypeOf(result), "Err", func(_ *mongo.SingleResult) error {
+	patchSingleResultErr := gomonkey.ApplyMethod(reflect.TypeOf(result), "Err", func(_ *mongo.SingleResult) error {
 		return nil
 	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(result), "Decode", func(_ *mongo.SingleResult, _ interface{}) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(result), "Decode", func(_ *mongo.SingleResult, _ interface{}) error {
 		return nil
-	})
+	}).Reset()
 
 	conf.Data = map[string]string{
 		"database:collection": "{\"key\" : \"value\"}",
@@ -179,7 +178,7 @@ func TestDta(t *testing.T) {
 	assert.True(t, s)
 	assert.Contains(t, m, "Successfully")
 
-	monkey.UnpatchInstanceMethod(reflect.TypeOf(result), "Err")
+	patchSingleResultErr.Reset()
 	s, m = mg.Probe()
 	assert.False(t, s)
 	assert.Contains(t, m, "Error")
@@ -197,6 +196,4 @@ func TestDta(t *testing.T) {
 	s, m = mg.Probe()
 	assert.False(t, s)
 	assert.Contains(t, m, "Invalid Format")
-
-	monkey.UnpatchAll()
 }

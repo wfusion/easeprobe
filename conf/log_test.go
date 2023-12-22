@@ -24,9 +24,9 @@ import (
 	"reflect"
 	"testing"
 
-	"bou.ke/monkey"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"gopkg.in/yaml.v3"
 )
@@ -137,9 +137,9 @@ func TestNonSelfRotateLog(t *testing.T) {
 }
 
 func TestOpenLogFail(t *testing.T) {
-	monkey.Patch(os.OpenFile, func(name string, flag int, perm os.FileMode) (*os.File, error) {
+	defer gomonkey.ApplyFunc(os.OpenFile, func(name string, flag int, perm os.FileMode) (*os.File, error) {
 		return nil, fmt.Errorf("error")
-	})
+	}).Reset()
 
 	file := "failed"
 
@@ -157,8 +157,6 @@ func TestOpenLogFail(t *testing.T) {
 	w := l.GetWriter()
 	assert.Equal(t, os.Stdout, w)
 
-	monkey.UnpatchAll()
-
 	// test rotate error - log file
 	l = NewLog()
 	l.File = file + ".log"
@@ -167,9 +165,9 @@ func TestOpenLogFail(t *testing.T) {
 	assert.Equal(t, false, l.IsStdout)
 
 	var fp *os.File
-	monkey.PatchInstanceMethod(reflect.TypeOf(fp), "Close", func(_ *os.File) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(fp), "Close", func(_ *os.File) error {
 		return fmt.Errorf("error")
-	})
+	}).Reset()
 
 	l.Rotate()
 	files, _ := filepath.Glob(file + "*")
@@ -186,15 +184,13 @@ func TestOpenLogFail(t *testing.T) {
 	assert.Equal(t, false, l.IsStdout)
 
 	var lum *lumberjack.Logger
-	monkey.PatchInstanceMethod(reflect.TypeOf(lum), "Rotate", func(_ *lumberjack.Logger) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(lum), "Rotate", func(_ *lumberjack.Logger) error {
 		return fmt.Errorf("error")
-	})
+	}).Reset()
 	l.Rotate()
 	files, _ = filepath.Glob(file + "*")
 	fmt.Println(files)
 	assert.Equal(t, 1, len(files))
 	l.Close()
 	os.Remove(l.File)
-
-	monkey.UnpatchAll()
 }

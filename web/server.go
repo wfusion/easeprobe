@@ -30,11 +30,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/megaease/easeprobe/conf"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe"
-	"github.com/megaease/easeprobe/report"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/wfusion/easeprobe/conf"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe"
+	"github.com/wfusion/easeprobe/report"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -187,7 +187,9 @@ func Server() {
 
 	r.Get("/", slaHTML)
 
-	r.Get("/metrics", promhttp.Handler().ServeHTTP)
+	if c.Settings.Prometheus.Mode != conf.PrometheusModePush {
+		r.Get("/metrics", promhttp.Handler().ServeHTTP)
+	}
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/sla", slaJSON)

@@ -24,10 +24,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/megaease/easeprobe/probe/client/conf"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl/plain"
 	log "github.com/sirupsen/logrus"
+	"github.com/wfusion/easeprobe/probe/client/conf"
 )
 
 // Kind is the type of driver

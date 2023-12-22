@@ -25,11 +25,11 @@ import (
 	"reflect"
 	"testing"
 
-	"bou.ke/monkey"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe"
-	"github.com/megaease/easeprobe/probe/base"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe"
+	"github.com/wfusion/easeprobe/probe/base"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 )
 
 type ProbeFuncType func() (bool, string)
@@ -98,16 +98,15 @@ func TestSLAJSONSection(t *testing.T) {
 	assert.Contains(t, sla, "\"name\":\"probe1\"")
 	assert.Contains(t, sla, "\"status\":\"up\"")
 
-	monkey.Patch(json.Marshal, func(v any) ([]byte, error) {
+	defer gomonkey.ApplyFunc(json.Marshal, func(v any) ([]byte, error) {
 		return nil, fmt.Errorf("error")
-	})
+	}).Reset()
+
 	sla = SLAJSONSection(p.Result())
 	assert.Empty(t, sla)
 
 	sla = SLAJSON([]probe.Prober{p})
 	assert.Empty(t, sla)
-
-	monkey.UnpatchAll()
 }
 
 func TestSLAStatusText(t *testing.T) {
@@ -128,19 +127,17 @@ func TestSLAStatusText(t *testing.T) {
 func TestFailed(t *testing.T) {
 	probes := getProbers()
 	var w *csv.Writer
-	monkey.PatchInstanceMethod(reflect.TypeOf(w), "WriteAll", func(_ *csv.Writer, _ [][]string) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(w), "WriteAll", func(_ *csv.Writer, _ [][]string) error {
 		return fmt.Errorf("error")
-	})
+	}).Reset()
 	sla := SLACSV(probes)
 	assert.Empty(t, sla)
 
-	monkey.Patch(json.Marshal, func(v any) ([]byte, error) {
+	defer gomonkey.ApplyFunc(json.Marshal, func(v any) ([]byte, error) {
 		return nil, fmt.Errorf("error")
-	})
+	}).Reset()
 	sla = SLAShell(probes)
 	assert.Empty(t, sla)
-
-	monkey.UnpatchAll()
 }
 
 func TestSLAFilter(t *testing.T) {

@@ -23,13 +23,13 @@ import (
 	"reflect"
 	"testing"
 
-	"bou.ke/monkey"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/report"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/report"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 )
 
 func TestSNSConfig(t *testing.T) {
@@ -41,31 +41,29 @@ func TestSNSConfig(t *testing.T) {
 	assert.NotNil(t, conf, conf.client)
 	assert.NotNil(t, conf, conf.context)
 
-	monkey.Patch(session.NewSessionWithOptions, func(options session.Options) (*session.Session, error) {
+	defer gomonkey.ApplyFunc(session.NewSessionWithOptions, func(options session.Options) (*session.Session, error) {
 		return nil, errors.New("session error")
-	})
+	}).Reset()
 	err = conf.Config(global.NotifySettings{})
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "session error")
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(conf.client), "PublishWithContext", func(_ *sns.SNS, ctx context.Context, input *sns.PublishInput, opts ...request.Option) (*sns.PublishOutput, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(conf.client), "PublishWithContext", func(_ *sns.SNS, ctx context.Context, input *sns.PublishInput, opts ...request.Option) (*sns.PublishOutput, error) {
 		id := "123"
 		num := "ab"
 		return &sns.PublishOutput{
 			MessageId:      &id,
 			SequenceNumber: &num,
 		}, nil
-	})
+	}).Reset()
 	err = conf.SendSNSNotification("test")
 	assert.NoError(t, err)
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(conf.client), "PublishWithContext", func(_ *sns.SNS, ctx context.Context, input *sns.PublishInput, opts ...request.Option) (*sns.PublishOutput, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(conf.client), "PublishWithContext", func(_ *sns.SNS, ctx context.Context, input *sns.PublishInput, opts ...request.Option) (*sns.PublishOutput, error) {
 		return nil, errors.New("publish error")
-	})
+	}).Reset()
 
 	err = conf.SendSNS("title", "msg")
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "publish error")
-
-	monkey.UnpatchAll()
 }

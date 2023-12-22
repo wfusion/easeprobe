@@ -23,8 +23,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"bou.ke/monkey"
-	"github.com/megaease/easeprobe/global"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -110,9 +110,9 @@ func TestPIDFileFailed(t *testing.T) {
 	conf.RemovePIDFile()
 	os.RemoveAll("dir")
 
-	monkey.Patch(os.WriteFile, func(string, []byte, os.FileMode) error {
+	defer gomonkey.ApplyFunc(os.WriteFile, func(string, []byte, os.FileMode) error {
 		return fmt.Errorf("error")
-	})
+	}).Reset()
 
 	conf, err = NewPIDFile(file)
 	assert.Nil(t, conf)
@@ -121,25 +121,23 @@ func TestPIDFileFailed(t *testing.T) {
 	assert.NoFileExists(t, file)
 	os.RemoveAll("dir")
 
-	monkey.Patch(os.MkdirAll, func(string, os.FileMode) error {
+	defer gomonkey.ApplyFunc(os.MkdirAll, func(string, os.FileMode) error {
 		return fmt.Errorf("error")
-	})
+	}).Reset()
 	conf, err = NewPIDFile(file)
 	assert.Nil(t, conf)
 	assert.NotNil(t, err)
 	assert.NoFileExists(t, file)
 	assert.NoDirExists(t, "dir")
 
-	monkey.Patch(os.Stat, func(string) (os.FileInfo, error) {
+	defer gomonkey.ApplyFunc(os.Stat, func(string) (os.FileInfo, error) {
 		return nil, fmt.Errorf("error")
-	})
+	}).Reset()
 	conf, err = NewPIDFile(file)
 	assert.Nil(t, conf)
 	assert.NotNil(t, err)
 	assert.NoFileExists(t, file)
 	assert.NoDirExists(t, "dir")
-
-	monkey.UnpatchAll()
 }
 
 func TestCheckPIDFile(t *testing.T) {
@@ -152,9 +150,9 @@ func TestCheckPIDFile(t *testing.T) {
 	assert.Equal(t, os.Getpid(), pid)
 	assert.NotNil(t, err)
 
-	monkey.Patch(processExists, func(int) bool {
+	defer gomonkey.ApplyFunc(processExists, func(int) bool {
 		return false
-	})
+	}).Reset()
 	pid, err = conf.CheckPIDFile()
 	assert.Equal(t, -1, pid)
 	assert.Nil(t, err)
@@ -170,6 +168,4 @@ func TestCheckPIDFile(t *testing.T) {
 	pid, err = conf.CheckPIDFile()
 	assert.Equal(t, -1, pid)
 	assert.Nil(t, err)
-
-	monkey.UnpatchAll()
 }

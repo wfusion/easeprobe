@@ -23,10 +23,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/notify/base"
-	"github.com/megaease/easeprobe/report"
 	log "github.com/sirupsen/logrus"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/notify/base"
+	"github.com/wfusion/easeprobe/report"
 	"gopkg.in/gomail.v2"
 )
 

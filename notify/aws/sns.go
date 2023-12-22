@@ -22,9 +22,9 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sns"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/report"
 	log "github.com/sirupsen/logrus"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/report"
 )
 
 // NotifyConfig is the AWS SNS notification configuration

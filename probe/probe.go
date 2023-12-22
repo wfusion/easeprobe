@@ -23,7 +23,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/megaease/easeprobe/global"
+	"github.com/wfusion/easeprobe/global"
 )
 
 // Prober Interface

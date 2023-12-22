@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/megaease/easeprobe/probe"
-	"github.com/megaease/easeprobe/probe/base"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/probe"
+	"github.com/wfusion/easeprobe/probe/base"
 )
 
 func initData() []probe.Prober {

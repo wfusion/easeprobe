@@ -4,16 +4,16 @@
 # 1) run easeprobe without any arguments
 # 2) run easeprobe with easeprobe arguments
 # 3) run the command in easeprobe container
-PROBE_CONFIG=${PROBE_CONFIG:-/opt/config.yaml}
+PROBE_CONFIG=${PROBE_CONFIG:-/config.yaml}
 
 echo "Using config file: ${PROBE_CONFIG}"
 
 # docker run megaease/easeprobe
 if [ "$#" -eq 0 ]; then
-   exec /opt/easeprobe
+   exec /easeprobe
 # docker run megaease/easeprobe -f config.yaml
 elif [ "$1" != "--" ] && [ "$(echo $1 | head -c 1)" == "-" ] ; then
-  exec /opt/easeprobe "$@"
+  exec /easeprobe "$@"
 # docker run -it --rm megaease/easeprobe /bin/sh
 # docker run -it --rm megaease/easeprobe -- /bin/echo hello world
 else

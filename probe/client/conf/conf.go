@@ -23,8 +23,8 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe/base"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe/base"
 )
 
 // Driver Interface

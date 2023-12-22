@@ -23,11 +23,11 @@ import (
 	"reflect"
 	"testing"
 
-	"bou.ke/monkey"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe/client/conf"
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe/client/conf"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 )
 
 func TestKaf(t *testing.T) {
@@ -44,16 +44,16 @@ func TestKaf(t *testing.T) {
 	assert.Nil(t, err)
 
 	var dialer *kafka.Dialer
-	monkey.PatchInstanceMethod(reflect.TypeOf(dialer), "DialContext", func(_ *kafka.Dialer, _ context.Context, _ string, _ string) (*kafka.Conn, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(dialer), "DialContext", func(_ *kafka.Dialer, _ context.Context, _ string, _ string) (*kafka.Conn, error) {
 		return &kafka.Conn{}, nil
-	})
+	}).Reset()
 	var conn *kafka.Conn
-	monkey.PatchInstanceMethod(reflect.TypeOf(conn), "ReadPartitions", func(k *kafka.Conn, topics ...string) ([]kafka.Partition, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(conn), "ReadPartitions", func(k *kafka.Conn, topics ...string) ([]kafka.Partition, error) {
 		return []kafka.Partition{{Topic: "topic1", ID: 1}, {Topic: "topic2", ID: 2}}, nil
-	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(conn), "Close", func(_ *kafka.Conn) error {
+	}).Reset()
+	defer gomonkey.ApplyMethod(reflect.TypeOf(conn), "Close", func(_ *kafka.Conn) error {
 		return nil
-	})
+	}).Reset()
 
 	s, m := kaf.Probe()
 	assert.True(t, s)
@@ -64,8 +64,6 @@ func TestKaf(t *testing.T) {
 	s, m = kaf.Probe()
 	assert.True(t, s)
 	assert.Contains(t, m, "Successfully")
-
-	monkey.UnpatchAll()
 }
 
 func TestKafkaFailed(t *testing.T) {
@@ -91,24 +89,24 @@ func TestKafkaFailed(t *testing.T) {
 	assert.Equal(t, "Kafka", kaf.Kind())
 
 	var dialer *kafka.Dialer
-	monkey.PatchInstanceMethod(reflect.TypeOf(dialer), "DialContext", func(_ *kafka.Dialer, _ context.Context, _ string, _ string) (*kafka.Conn, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(dialer), "DialContext", func(_ *kafka.Dialer, _ context.Context, _ string, _ string) (*kafka.Conn, error) {
 		return &kafka.Conn{}, nil
-	})
+	}).Reset()
 	var conn *kafka.Conn
-	monkey.PatchInstanceMethod(reflect.TypeOf(conn), "ReadPartitions", func(k *kafka.Conn, topics ...string) ([]kafka.Partition, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(conn), "ReadPartitions", func(k *kafka.Conn, topics ...string) ([]kafka.Partition, error) {
 		return []kafka.Partition{}, fmt.Errorf("get topics error")
-	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(conn), "Close", func(_ *kafka.Conn) error {
+	}).Reset()
+	defer gomonkey.ApplyMethod(reflect.TypeOf(conn), "Close", func(_ *kafka.Conn) error {
 		return nil
-	})
+	}).Reset()
 
 	s, m := kaf.Probe()
 	assert.False(t, s)
 	assert.Contains(t, m, "get topics error")
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(dialer), "DialContext", func(_ *kafka.Dialer, _ context.Context, _ string, _ string) (*kafka.Conn, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(dialer), "DialContext", func(_ *kafka.Dialer, _ context.Context, _ string, _ string) (*kafka.Conn, error) {
 		return nil, fmt.Errorf("connection error")
-	})
+	}).Reset()
 	s, m = kaf.Probe()
 	assert.False(t, s)
 	assert.Contains(t, m, "connection error")

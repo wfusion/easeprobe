@@ -23,10 +23,10 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/megaease/easeprobe/channel"
-	"github.com/megaease/easeprobe/conf"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe"
+	"github.com/wfusion/easeprobe/channel"
+	"github.com/wfusion/easeprobe/conf"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe"
 )
 
 func configProbers(probers []probe.Prober) []probe.Prober {

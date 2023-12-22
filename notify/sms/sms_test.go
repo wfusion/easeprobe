@@ -21,13 +21,13 @@ import (
 	"reflect"
 	"testing"
 
-	"bou.ke/monkey"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/notify/sms/conf"
-	"github.com/megaease/easeprobe/notify/sms/nexmo"
-	"github.com/megaease/easeprobe/notify/sms/twilio"
-	"github.com/megaease/easeprobe/notify/sms/yunpian"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/notify/sms/conf"
+	"github.com/wfusion/easeprobe/notify/sms/nexmo"
+	"github.com/wfusion/easeprobe/notify/sms/twilio"
+	"github.com/wfusion/easeprobe/notify/sms/yunpian"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 )
 
 func TestSMS(t *testing.T) {
@@ -51,12 +51,11 @@ func TestSMS(t *testing.T) {
 	assert.IsType(t, &nexmo.Nexmo{}, c.Provider)
 
 	var provider *nexmo.Nexmo
-	monkey.PatchInstanceMethod(reflect.TypeOf(provider), "Notify", func(_ *nexmo.Nexmo, _ string, _ string) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(provider), "Notify", func(_ *nexmo.Nexmo, _ string, _ string) error {
 		return nil
-	})
+	}).Reset()
 	err = c.DoNotify("title", "message")
 	assert.NoError(t, err)
-	monkey.UnpatchAll()
 
 	c.ProviderType = conf.Unknown
 	c.Provider = nil

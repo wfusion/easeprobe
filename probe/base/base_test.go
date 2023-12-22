@@ -26,12 +26,12 @@ import (
 	"testing"
 	"time"
 
-	"bou.ke/monkey"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 	"golang.org/x/net/proxy"
 
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe"
 )
 
 var (
@@ -120,13 +120,13 @@ func TestProxyConnection(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, conn)
 
-	monkey.Patch(proxy.SOCKS5, func(network string, address string, auth *proxy.Auth, forward proxy.Dialer) (proxy.Dialer, error) {
+	defer gomonkey.ApplyFunc(proxy.SOCKS5, func(network string, address string, auth *proxy.Auth, forward proxy.Dialer) (proxy.Dialer, error) {
 		return &net.Dialer{}, nil
-	})
+	}).Reset()
 	var dialer *net.Dialer
-	monkey.PatchInstanceMethod(reflect.TypeOf(dialer), "Dial", func(_ *net.Dialer, network, address string) (net.Conn, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(dialer), "Dial", func(_ *net.Dialer, network, address string) (net.Conn, error) {
 		return &net.TCPConn{}, nil
-	})
+	}).Reset()
 
 	conn, err = p.GetProxyConnection("", "host:80")
 	assert.Nil(t, err)
@@ -136,18 +136,16 @@ func TestProxyConnection(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, conn)
 
-	monkey.Patch(proxy.FromEnvironment, func() proxy.Dialer {
+	defer gomonkey.ApplyFunc(proxy.FromEnvironment, func() proxy.Dialer {
 		return proxy.Direct
-	})
+	}).Reset()
 
-	monkey.Patch(net.DialTimeout, func(string, string, time.Duration) (net.Conn, error) {
+	defer gomonkey.ApplyFunc(net.DialTimeout, func(string, string, time.Duration) (net.Conn, error) {
 		return &net.TCPConn{}, nil
-	})
+	}).Reset()
 	conn, err = p.GetProxyConnection("", "host:80")
 	assert.Nil(t, err)
 	assert.NotNil(t, conn)
-
-	monkey.UnpatchAll()
 }
 
 func TestStatusThreshold(t *testing.T) {

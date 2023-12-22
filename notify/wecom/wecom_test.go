@@ -25,10 +25,10 @@ import (
 	"strings"
 	"testing"
 
-	"bou.ke/monkey"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/report"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/report"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 )
 
 func assertError(t *testing.T, err error, msg string) {
@@ -45,43 +45,42 @@ func TestSlack(t *testing.T) {
 	assert.Equal(t, report.Markdown, conf.NotifyFormat)
 
 	var client http.Client
-	monkey.PatchInstanceMethod(reflect.TypeOf(&client), "Do", func(_ *http.Client, req *http.Request) (*http.Response, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(&client), "Do", func(_ *http.Client, req *http.Request) (*http.Response, error) {
 		r := io.NopCloser(strings.NewReader(`ok`))
 		return &http.Response{
 			StatusCode: 200,
 			Body:       r,
 		}, nil
-	})
+	}).Reset()
 	err = conf.SendWecom("title", "message")
 	assert.NoError(t, err)
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(&client), "Do", func(_ *http.Client, req *http.Request) (*http.Response, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(&client), "Do", func(_ *http.Client, req *http.Request) (*http.Response, error) {
 		r := io.NopCloser(strings.NewReader(`not found`))
 		return &http.Response{
 			StatusCode: 404,
 			Body:       r,
 		}, nil
-	})
+	}).Reset()
 	err = conf.SendWecom("title", "message")
 	assertError(t, err, "Error response from Wecom - code [404] - msg [not found]")
 
-	monkey.Patch(io.ReadAll, func(_ io.Reader) ([]byte, error) {
+	defer gomonkey.ApplyFunc(io.ReadAll, func(_ io.Reader) ([]byte, error) {
 		return nil, errors.New("read error")
-	})
+	}).Reset()
 	err = conf.SendWecom("title", "message")
 	assertError(t, err, "read error")
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(&client), "Do", func(_ *http.Client, req *http.Request) (*http.Response, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(&client), "Do", func(_ *http.Client, req *http.Request) (*http.Response, error) {
 		return nil, errors.New("http do error")
-	})
+	}).Reset()
 	err = conf.SendWecom("title", "message")
 	assertError(t, err, "http do error")
 
-	monkey.Patch(http.NewRequest, func(method string, url string, body io.Reader) (*http.Request, error) {
+	defer gomonkey.ApplyFunc(http.NewRequest, func(method string, url string, body io.Reader) (*http.Request, error) {
 		return nil, errors.New("new request error")
-	})
+	}).Reset()
 	err = conf.SendWecom("title", "message")
 	assertError(t, err, "new request error")
 
-	monkey.UnpatchAll()
 }

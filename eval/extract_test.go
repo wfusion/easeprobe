@@ -23,8 +23,8 @@ import (
 	"testing"
 	"time"
 
-	"bou.ke/monkey"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 	"golang.org/x/net/html"
 )
 
@@ -72,7 +72,7 @@ func TestHTMLExtractor(t *testing.T) {
 	</body>
 	</html>
 	`
-	extractor := NewHTMLExtractor(htmlDoc)
+	extractor := NewHTMLExtractor(htmlDoc, HTML)
 
 	assertExtractorSucc(t, extractor, "//div[@id='number']/div[@class='one']", Int, 1)
 	assertExtractorSucc(t, extractor, "//title", String, "Hello World Example")
@@ -117,7 +117,7 @@ func TestJSONExtractor(t *testing.T) {
 			]
 		}
 	}`
-	extractor := NewJSONExtractor(jsonDoc)
+	extractor := NewJSONExtractor(jsonDoc, JSON)
 
 	assertExtractorSucc(t, extractor, "//name", String, "MegaEase")
 	assertExtractorSucc(t, extractor, "//company/name", String, "MegaEase")
@@ -158,7 +158,7 @@ func TestXMLExtractor(t *testing.T) {
 			<fulltime>false</fulltime>
 		</person>
 	</company>`
-	extractor := NewXMLExtractor(xmlDoc)
+	extractor := NewXMLExtractor(xmlDoc, XML)
 
 	assertExtractorSucc(t, extractor, "//name", String, "MegaEase")
 	assertExtractorSucc(t, extractor, "//company/name", String, "MegaEase")
@@ -176,7 +176,7 @@ func TestXMLExtractor(t *testing.T) {
 func TestRegexExtractor(t *testing.T) {
 	regexDoc := `name: Bob, email: bob@example.com, age: 35, salary: 35000.12, birth: 1984-10-12, work: 40h, fulltime: true`
 
-	extractor := NewRegexExtractor(regexDoc)
+	extractor := NewRegexExtractor(regexDoc, TEXT)
 
 	assertExtractorSucc(t, extractor, "name: (?P<name>[a-zA-Z0-9 ]*)", String, "Bob")
 	assertExtractorSucc(t, extractor, "email: (?P<email>[a-zA-Z0-9@.]*)", String, "bob@example.com")
@@ -197,7 +197,7 @@ func TestRegexExtractor(t *testing.T) {
 
 func TestFailed(t *testing.T) {
 	doc := "<div>hello world</div>"
-	extractor := NewHTMLExtractor(doc)
+	extractor := NewHTMLExtractor(doc, HTML)
 	invalid := "///div"
 	assertExtractorFail(t, extractor, invalid, Int, 0)
 	assertExtractorFail(t, extractor, invalid, Float, 0.0)
@@ -206,9 +206,9 @@ func TestFailed(t *testing.T) {
 	assertExtractorFail(t, extractor, invalid, Duration, time.Duration(0))
 	assertExtractorFail(t, extractor, invalid, Unknown, nil)
 
-	monkey.Patch(html.Parse, func(io.Reader) (*html.Node, error) {
+	defer gomonkey.ApplyFunc(html.Parse, func(io.Reader) (*html.Node, error) {
 		return nil, errors.New("parse error")
-	})
+	}).Reset()
 
 	extractor.VarType = String
 	result, err := extractor.Extract()
@@ -216,5 +216,4 @@ func TestFailed(t *testing.T) {
 	assert.Equal(t, "parse error", err.Error())
 	assert.Equal(t, "", result)
 
-	monkey.Unpatch(html.Parse)
 }

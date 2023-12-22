@@ -22,8 +22,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/notify/base"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/notify/base"
 )
 
 // Credentials is AWS access id and access token

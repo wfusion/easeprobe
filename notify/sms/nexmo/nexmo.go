@@ -25,8 +25,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/megaease/easeprobe/notify/sms/conf"
 	log "github.com/sirupsen/logrus"
+	"github.com/wfusion/easeprobe/notify/sms/conf"
 )
 
 // Nexmo is the Nexmo sms provider

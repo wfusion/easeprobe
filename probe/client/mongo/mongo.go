@@ -23,8 +23,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/megaease/easeprobe/probe/client/conf"
 	log "github.com/sirupsen/logrus"
+	"github.com/wfusion/easeprobe/probe/client/conf"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"

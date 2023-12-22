@@ -18,10 +18,10 @@
 package main
 
 import (
-	"github.com/megaease/easeprobe/conf"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/notify"
 	log "github.com/sirupsen/logrus"
+	"github.com/wfusion/easeprobe/conf"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/notify"
 )
 
 func configNotifiers(notifies []notify.Notify) []notify.Notify {

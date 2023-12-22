@@ -23,11 +23,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/megaease/easeprobe/probe"
-	"github.com/megaease/easeprobe/probe/base"
-	"github.com/megaease/easeprobe/probe/http"
-	"github.com/megaease/easeprobe/probe/shell"
-	"github.com/megaease/easeprobe/probe/tcp"
+	"github.com/wfusion/easeprobe/probe"
+	"github.com/wfusion/easeprobe/probe/base"
+	"github.com/wfusion/easeprobe/probe/http"
+	"github.com/wfusion/easeprobe/probe/shell"
+	"github.com/wfusion/easeprobe/probe/tcp"
 )
 
 func TestMergeConstLabels(t *testing.T) {

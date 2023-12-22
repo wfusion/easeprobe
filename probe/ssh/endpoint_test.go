@@ -22,8 +22,8 @@ import (
 	"testing"
 	"time"
 
-	"bou.ke/monkey"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 )
 
 func check(t *testing.T, fname string, err error, result, expected string) {
@@ -70,7 +70,7 @@ func TestSSHConfig(t *testing.T) {
 	assert.Nil(t, config)
 	assert.NotNil(t, err)
 
-	monkey.Patch(os.ReadFile, func(filename string) ([]byte, error) {
+	defer gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
 		return []byte(`
 -----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAaAAAABNlY2RzYS
@@ -81,13 +81,13 @@ EbAAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBH1Zk94FK+LGSGNA
 EAAAAgBzKpRmMyXZ4jnSt3ARz0ul6R79AXAr5gQqDAmoFeEKwAAAAOYWpAYm93aWUubG9j
 YWwBAg==
 -----END OPENSSH PRIVATE KEY-----`), nil
-	})
+	}).Reset()
 	config, err = e.SSHConfig("ssh", "test", 30*time.Second)
 	assert.Nil(t, err)
 	assert.NotNil(t, config)
 
 	e.Passphrase = "123"
-	monkey.Patch(os.ReadFile, func(filename string) ([]byte, error) {
+	defer gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
 		return []byte(`
 -----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABBdkMia9n
@@ -107,14 +107,14 @@ DX4y9QvXoaUiQ5vB63voiqRTBT4hTYBDVi2G7NEjIczNs9S8JQM5Mg52mZsdH77g6ChUPp
 1gmeAwg2IKBY2y+HzQ/5xub5KjGDG6E=
 -----END OPENSSH PRIVATE KEY-----
 `), nil
-	})
+	}).Reset()
 	config, err = e.SSHConfig("ssh", "test", 30*time.Second)
 	assert.Nil(t, err)
 	assert.NotNil(t, config)
 
-	monkey.Patch(os.ReadFile, func(filename string) ([]byte, error) {
+	defer gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
 		return []byte(``), nil
-	})
+	}).Reset()
 	config, err = e.SSHConfig("ssh", "test", 30*time.Second)
 	assert.Nil(t, config)
 	assert.NotNil(t, err)

@@ -25,9 +25,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/go-chi/chi/middleware"
-	"github.com/megaease/easeprobe/global"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/sirupsen/logrus"
+	"github.com/wfusion/easeprobe/global"
 )
 
 // AccessLog is the default access log format

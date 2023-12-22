@@ -20,6 +20,7 @@ package eval
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/Knetic/govaluate"
@@ -79,13 +80,13 @@ func (e *Evaluator) configExtractor() {
 	e.ExtractedValues = make(map[string]interface{})
 	switch e.DocType {
 	case HTML:
-		e.Extractor = NewHTMLExtractor(e.Document)
+		e.Extractor = NewHTMLExtractor(e.Document, e.DocType)
 	case XML:
-		e.Extractor = NewXMLExtractor(e.Document)
+		e.Extractor = NewXMLExtractor(e.Document, e.DocType)
 	case JSON:
-		e.Extractor = NewJSONExtractor(e.Document)
+		e.Extractor = NewJSONExtractor(e.Document, e.DocType)
 	case TEXT:
-		e.Extractor = NewRegexExtractor(e.Document)
+		e.Extractor = NewRegexExtractor(e.Document, e.DocType)
 	default:
 		e.Extractor = nil
 		log.Errorf("Unsupported document type: %s", e.DocType)
@@ -136,7 +137,17 @@ func (e *Evaluator) configEvalFunctions() {
 			v, e := extract(Duration, args[0].(string), 0)
 			return (float64)(v.(time.Duration)), e
 		},
-
+		"x_len": func(args ...interface{}) (interface{}, error) {
+			v := Variable{
+				Type:  LengthVariable,
+				Query: args[0].(string),
+			}
+			if err := e.ExtractValue(&v); err != nil {
+				return float64(0), err
+			}
+			length := reflect.ValueOf(v.Value).Len()
+			return float64(length), nil
+		},
 		// Functional functions
 		"strlen": func(args ...interface{}) (interface{}, error) {
 			length := len(args[0].(string))

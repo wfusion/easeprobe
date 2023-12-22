@@ -25,9 +25,9 @@ import (
 	"strings"
 	"testing"
 
-	"bou.ke/monkey"
-	"github.com/megaease/easeprobe/notify/sms/conf"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/notify/sms/conf"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 )
 
 func assertError(t *testing.T, err error, msg string) {
@@ -37,46 +37,45 @@ func assertError(t *testing.T, err error, msg string) {
 
 func testNotify(t *testing.T, provider conf.Provider) {
 	var client *http.Client
-	monkey.PatchInstanceMethod(reflect.TypeOf(client), "Do", func(_ *http.Client, req *http.Request) (*http.Response, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(client), "Do", func(_ *http.Client, req *http.Request) (*http.Response, error) {
 		r := io.NopCloser(strings.NewReader(`ok`))
 		return &http.Response{
 			StatusCode: 200,
 			Body:       r,
 		}, nil
-	})
+	}).Reset()
 
 	err := provider.Notify("title", "text")
 	assert.NoError(t, err)
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(client), "Do", func(_ *http.Client, req *http.Request) (*http.Response, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(client), "Do", func(_ *http.Client, req *http.Request) (*http.Response, error) {
 		r := io.NopCloser(strings.NewReader(`Internal Server Error`))
 		return &http.Response{
 			StatusCode: 500,
 			Body:       r,
 		}, nil
-	})
+	}).Reset()
 	err = provider.Notify("title", "text")
 	assertError(t, err, "Error response from SMS [500] - [Internal Server Error]")
 
-	monkey.Patch(io.ReadAll, func(_ io.Reader) ([]byte, error) {
+	defer gomonkey.ApplyFunc(io.ReadAll, func(_ io.Reader) ([]byte, error) {
 		return nil, errors.New("read error")
-	})
+	}).Reset()
 	err = provider.Notify("title", "text")
 	assertError(t, err, "read error")
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(client), "Do", func(_ *http.Client, req *http.Request) (*http.Response, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(client), "Do", func(_ *http.Client, req *http.Request) (*http.Response, error) {
 		return nil, errors.New("http do error")
-	})
+	}).Reset()
 	err = provider.Notify("title", "text")
 	assertError(t, err, "http do error")
 
-	monkey.Patch(http.NewRequest, func(_ string, _ string, _ io.Reader) (*http.Request, error) {
+	defer gomonkey.ApplyFunc(http.NewRequest, func(_ string, _ string, _ io.Reader) (*http.Request, error) {
 		return nil, errors.New("http new request error")
-	})
+	}).Reset()
 	err = provider.Notify("title", "text")
 	assertError(t, err, "http new request error")
 
-	monkey.UnpatchAll()
 }
 
 func TestYunpian(t *testing.T) {

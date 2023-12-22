@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/megaease/easeprobe/global"
 	log "github.com/sirupsen/logrus"
+	"github.com/wfusion/easeprobe/global"
 )
 
 // DurationStr convert the curation to string

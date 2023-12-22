@@ -20,9 +20,9 @@ package metric
 import (
 	"testing"
 
-	"bou.ke/monkey"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 )
 
 func TestGetName(t *testing.T) {
@@ -134,14 +134,14 @@ func TestInvalidName(t *testing.T) {
 		"help", []string{"label-1", "label:2"}, prometheus.Labels{})
 	assert.Nil(t, gauge)
 
-	monkey.Patch(ValidMetricName, func(name string) bool {
+	patch := gomonkey.ApplyFunc(ValidMetricName, func(name string) bool {
 		return false
 	})
 	counter = NewCounter("namespace", "subsystem", "counter", "metric",
 		"help", []string{}, prometheus.Labels{})
 	assert.Nil(t, counter)
 
-	monkey.UnpatchAll()
+	patch.Reset()
 }
 
 func TestDuplicateLabels(t *testing.T) {

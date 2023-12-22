@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/megaease/easeprobe/global"
+	"github.com/wfusion/easeprobe/global"
 
 	log "github.com/sirupsen/logrus"
 )

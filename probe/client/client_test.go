@@ -21,18 +21,18 @@ import (
 	"reflect"
 	"testing"
 
-	"bou.ke/monkey"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe/base"
-	"github.com/megaease/easeprobe/probe/client/conf"
-	"github.com/megaease/easeprobe/probe/client/kafka"
-	"github.com/megaease/easeprobe/probe/client/memcache"
-	"github.com/megaease/easeprobe/probe/client/mongo"
-	"github.com/megaease/easeprobe/probe/client/mysql"
-	"github.com/megaease/easeprobe/probe/client/postgres"
-	"github.com/megaease/easeprobe/probe/client/redis"
-	"github.com/megaease/easeprobe/probe/client/zookeeper"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe/base"
+	"github.com/wfusion/easeprobe/probe/client/conf"
+	"github.com/wfusion/easeprobe/probe/client/kafka"
+	"github.com/wfusion/easeprobe/probe/client/memcache"
+	"github.com/wfusion/easeprobe/probe/client/mongo"
+	"github.com/wfusion/easeprobe/probe/client/mysql"
+	"github.com/wfusion/easeprobe/probe/client/postgres"
+	"github.com/wfusion/easeprobe/probe/client/redis"
+	"github.com/wfusion/easeprobe/probe/client/zookeeper"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 )
 
 func newDummyClient(driver conf.DriverType) Client {
@@ -52,11 +52,14 @@ func newDummyClient(driver conf.DriverType) Client {
 	}
 }
 
-func MockProbe[T any](c T) {
+func MockProbe[T any](c T) func() {
 	p := &c
-	monkey.PatchInstanceMethod(reflect.TypeOf(p), "Probe", func(_ *T) (bool, string) {
+	patch := gomonkey.ApplyMethod(reflect.TypeOf(p), "Probe", func(_ *T) (bool, string) {
 		return true, "Successfully"
 	})
+	return func() {
+		patch.Reset()
+	}
 }
 
 func TestClient(t *testing.T) {
@@ -83,19 +86,19 @@ func TestClient(t *testing.T) {
 
 		switch client.DriverType {
 		case conf.MySQL:
-			MockProbe(mysql.MySQL{})
+			defer MockProbe(mysql.MySQL{})()
 		case conf.PostgreSQL:
-			MockProbe(postgres.PostgreSQL{})
+			defer MockProbe(postgres.PostgreSQL{})()
 		case conf.Redis:
-			MockProbe(redis.Redis{})
+			defer MockProbe(redis.Redis{})()
 		case conf.Mongo:
-			MockProbe(mongo.Mongo{})
+			defer MockProbe(mongo.Mongo{})()
 		case conf.Kafka:
-			MockProbe(kafka.Kafka{})
+			defer MockProbe(kafka.Kafka{})()
 		case conf.Zookeeper:
-			MockProbe(zookeeper.Zookeeper{})
+			defer MockProbe(zookeeper.Zookeeper{})()
 		case conf.Memcache:
-			MockProbe(memcache.Memcache{})
+			defer MockProbe(memcache.Memcache{})()
 		}
 		client.Host = "example.com:1234"
 		err = client.Config(global.ProbeSettings{})
@@ -111,17 +114,15 @@ func TestClient(t *testing.T) {
 	s, m := u.DoProbe()
 	assert.False(t, s)
 	assert.Contains(t, m, "Wrong Driver Type")
-
-	monkey.UnpatchAll()
 }
 
 func TestFailed(t *testing.T) {
 
 	c := newDummyClient(conf.Unknown)
 	var cnf *conf.Options
-	monkey.PatchInstanceMethod(reflect.TypeOf(cnf), "Check", func(_ *conf.Options) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(cnf), "Check", func(_ *conf.Options) error {
 		return nil
-	})
+	}).Reset()
 	err := c.Config(global.ProbeSettings{})
 	assert.NotNil(t, err)
 

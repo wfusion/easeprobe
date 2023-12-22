@@ -25,12 +25,12 @@ import (
 	"testing"
 	"time"
 
-	"bou.ke/monkey"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 	"gopkg.in/yaml.v3"
 
-	"github.com/megaease/easeprobe/global"
+	"github.com/wfusion/easeprobe/global"
 )
 
 var testResults = []Result{
@@ -153,22 +153,21 @@ func TestNewDataFile(t *testing.T) {
 	removeAll("x/")
 
 	// errors
-	monkey.Patch(os.WriteFile, func(filename string, data []byte, perm os.FileMode) error {
+	defer gomonkey.ApplyFunc(os.WriteFile, func(filename string, data []byte, perm os.FileMode) error {
 		return fmt.Errorf("error")
-	})
+	}).Reset()
 	file = "data.yaml"
 	err := newDataFile(file)
 	assert.Error(t, err)
 	removeAll(file)
 
-	monkey.Patch(yaml.Marshal, func(v interface{}) ([]byte, error) {
+	defer gomonkey.ApplyFunc(yaml.Marshal, func(v interface{}) ([]byte, error) {
 		return nil, fmt.Errorf("error")
-	})
+	}).Reset()
 	err = newDataFile(file)
 	assert.Error(t, err)
 	removeAll(file)
 
-	monkey.UnpatchAll()
 }
 
 func TestLoadDataFile(t *testing.T) {
@@ -188,7 +187,7 @@ func TestLoadDataFile(t *testing.T) {
 	checkData(t)
 
 	// errors - backup file
-	monkey.Patch(os.Rename, func(oldpath, newpath string) error {
+	patchOSRename := gomonkey.ApplyFunc(os.Rename, func(oldpath, newpath string) error {
 		return fmt.Errorf("error")
 	})
 	newDataFile(file)
@@ -199,18 +198,19 @@ func TestLoadDataFile(t *testing.T) {
 
 	// errors - unmarshal error
 	newDataFile(file)
-	monkey.Patch(yaml.Unmarshal, func(in []byte, out interface{}) error {
+	patchYAMLUnmarshal := gomonkey.ApplyFunc(yaml.Unmarshal, func(in []byte, out interface{}) error {
 		return fmt.Errorf("error")
 	})
 	err = LoadDataFromFile(file)
 	assert.Error(t, err)
 	removeAll(file)
-	monkey.UnpatchAll()
+	patchOSRename.Reset()
+	patchYAMLUnmarshal.Reset()
 
 	// errors - decode error
 	newDataFile(file)
 	var dec *yaml.Decoder
-	monkey.PatchInstanceMethod(reflect.TypeOf(dec), "Decode", func(*yaml.Decoder, interface{}) error {
+	patchYAMLDecode := gomonkey.ApplyMethod(reflect.TypeOf(dec), "Decode", func(*yaml.Decoder, interface{}) error {
 		return fmt.Errorf("error")
 	})
 	err = LoadDataFromFile(file)
@@ -219,14 +219,15 @@ func TestLoadDataFile(t *testing.T) {
 
 	// errors - read error
 	newDataFile(file)
-	monkey.Patch(os.ReadFile, func(filename string) ([]byte, error) {
+	patchOSReadFile := gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
 		return nil, fmt.Errorf("error")
 	})
 	err = LoadDataFromFile(file)
 	assert.Error(t, err)
 	removeAll(file)
 
-	monkey.UnpatchAll()
+	patchYAMLDecode.Reset()
+	patchOSReadFile.Reset()
 }
 
 func numOfBackup(file string) int {
@@ -254,13 +255,13 @@ func TestCleanDataFile(t *testing.T) {
 	}
 	assert.Equal(t, n, numOfBackup(file))
 
-	monkey.Patch(os.Remove, func(filename string) error {
+	patchOSRemove := gomonkey.ApplyFunc(os.Remove, func(filename string) error {
 		return fmt.Errorf("error")
 	})
 	CleanDataFile(file, 3)
 	assert.Equal(t, n, numOfBackup(file))
 
-	monkey.UnpatchAll()
+	patchOSRemove.Reset()
 
 	CleanDataFile(file, 10)
 	assert.Equal(t, n, numOfBackup(file))
@@ -285,13 +286,13 @@ func TestCleanDataFile(t *testing.T) {
 	CleanDataFile(file, -1)
 	assert.Equal(t, 0, numOfBackup(file))
 
-	monkey.Patch(filepath.Glob, func(pattern string) ([]string, error) {
+	patchFilepathGlob := gomonkey.ApplyFunc(filepath.Glob, func(pattern string) ([]string, error) {
 		return nil, fmt.Errorf("error")
 	})
 	CleanDataFile(file, n)
 	assert.Equal(t, 0, numOfBackup(file))
 
-	monkey.UnpatchAll()
+	patchFilepathGlob.Reset()
 }
 
 func TestMetaData(t *testing.T) {

@@ -21,11 +21,11 @@ import (
 	"time"
 
 	"github.com/go-co-op/gocron"
-	"github.com/megaease/easeprobe/channel"
-	"github.com/megaease/easeprobe/conf"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe"
 	log "github.com/sirupsen/logrus"
+	"github.com/wfusion/easeprobe/channel"
+	"github.com/wfusion/easeprobe/conf"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe"
 )
 
 func saveData(doneSave chan bool, saveChannel chan probe.Result) {

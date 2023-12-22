@@ -21,8 +21,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/megaease/easeprobe/notify/base"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/notify/base"
 )
 
 func TestNotify(t *testing.T) {

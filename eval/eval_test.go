@@ -24,9 +24,9 @@ import (
 	"testing"
 	"time"
 
-	"bou.ke/monkey"
 	"github.com/Knetic/govaluate"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 )
 
 func assertResult(t *testing.T, eval *Evaluator, success bool) {
@@ -55,6 +55,12 @@ func TestHTMLEval(t *testing.T) {
 		<div id=mem_total>1024</div>
 		<div id=resp_time>500ms</div>
 		<div id=live>false</div>
+		<div id=data>1</div>
+		<div id=data>2</div>
+		<div id=data>3</div>
+		<div id=objects><div id=object_id>1</div></div>
+		<div id=objects><div id=object_id>2</div></div>
+		<div id=objects><div id=object_id>3</div></div>
 	</body>
 	</html>`
 	htmlDoc := fmt.Sprintf(htmlTemp, time.Now().Format(time.RFC3339))
@@ -135,6 +141,12 @@ func TestHTMLEval(t *testing.T) {
 
 	eval = NewEvaluator(htmlDoc, HTML, "duration(x_str('//div[@id=\\'time\\']')) < '1000'")
 	assertResult(t, eval, false)
+
+	eval = NewEvaluator(htmlDoc, HTML, "x_len('//div[@id=\\'data\\']') == 3")
+	assertResult(t, eval, true)
+
+	eval = NewEvaluator(htmlDoc, HTML, "x_len('//div[@id=\\'objects\\']') == 3")
+	assertResult(t, eval, true)
 }
 
 func TestJSONEval(t *testing.T) {
@@ -143,7 +155,8 @@ func TestJSONEval(t *testing.T) {
 		"time": "` + time.Now().Format(time.RFC3339) + `",
 		"mem_used": 512,
 		"mem_total": 1024,
-		"resp_time": "500ms"
+		"resp_time": "500ms",
+		"data": [{},{},{}]
 	}`
 
 	// ---- test name ----
@@ -197,6 +210,9 @@ func TestJSONEval(t *testing.T) {
 
 	eval = NewEvaluator(json, JSON, "x_int('//mem_total') - x_int('//mem_used')")
 	assertResult(t, eval, true)
+
+	eval = NewEvaluator(json, JSON, "x_len('//data') == 3")
+	assertResult(t, eval, true)
 }
 
 func TestXMLEval(t *testing.T) {
@@ -210,6 +226,16 @@ func TestXMLEval(t *testing.T) {
 		<mem_total>1024</mem_total>
 		<resp_time>500ms</resp_time>
 		<live>true</live>
+		<data>
+            <value>1</value>
+            <value>2</value>
+            <value>3</value>
+		</data>
+		<objects>
+            <object><id>1</id></object>
+			<object><id>2</id></object>
+			<object><id>3</id></object>
+		</objects>
 	</root>`
 
 	// ---- test name ----
@@ -244,10 +270,15 @@ func TestXMLEval(t *testing.T) {
 
 	eval = NewEvaluator(xmlDoc, XML, "x_bool('//live') && x_float('//cpu') < 0.9 && x_int('//mem_used') / x_int('//mem_total') < 0.8")
 	assertResult(t, eval, true)
+
+	eval = NewEvaluator(xmlDoc, XML, "x_len('//data') == 3")
+	assertResult(t, eval, true)
+	eval = NewEvaluator(xmlDoc, XML, "x_len('//objects') == 3")
+	assertResult(t, eval, true)
 }
 
 func TestRegexEval(t *testing.T) {
-	text := `name: Server, cpu: 0.8, mem_used: 512, mem_total: 1024, resp_time: 256ms, live: true`
+	text := `name: Server, cpu: 0.8, mem_used: 512, mem_total: 1024, resp_time: 256ms, live: true, data: [1,2,3]`
 
 	// ---- test name ----
 	eval := NewEvaluator(text, TEXT, "name == 'Server'")
@@ -277,6 +308,10 @@ func TestRegexEval(t *testing.T) {
 	eval.AddVariable(NewVariable("cpu", Float, "cpu: (?P<cpu>[0-9.]*)"))
 	eval.AddVariable(NewVariable("live", Bool, "live: (?P<live>true|false)"))
 	assertResult(t, eval, true)
+
+	eval = NewEvaluator(text, TEXT, "x_len('data: (?P<data>.*)') == 3")
+	eval.AddVariable(NewVariable("data", String, "data: (?P<data>(\\{.*\\})|(\\[.*\\])|(\".*\")|(\\b(true|false|null)\\b)|(-?\\d+(\\.\\d+)?))"))
+	assertResult(t, eval, true)
 }
 
 func TestFailure(t *testing.T) {
@@ -300,26 +335,24 @@ func TestFailure(t *testing.T) {
 	eval.AddVariable(v)
 
 	var expression govaluate.EvaluableExpression
-	monkey.PatchInstanceMethod(reflect.TypeOf(expression), "Evaluate", func(govaluate.EvaluableExpression, map[string]interface{}) (interface{}, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(expression), "Evaluate", func(govaluate.EvaluableExpression, map[string]interface{}) (interface{}, error) {
 		n := 10
 		return n, nil
-	})
+	}).Reset()
 
 	result, err = eval.Evaluate()
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Unsupported")
 	assert.False(t, result)
 
-	monkey.Patch(govaluate.NewEvaluableExpressionWithFunctions, func(expression string, functions map[string]govaluate.ExpressionFunction) (*govaluate.EvaluableExpression, error) {
+	defer gomonkey.ApplyFunc(govaluate.NewEvaluableExpressionWithFunctions, func(expression string, functions map[string]govaluate.ExpressionFunction) (*govaluate.EvaluableExpression, error) {
 		return nil, errors.New("error")
-	})
+	}).Reset()
 
 	result, err = eval.Evaluate()
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "error")
 	assert.False(t, result)
-
-	monkey.UnpatchAll()
 }
 
 func TestExtractFunc(t *testing.T) {

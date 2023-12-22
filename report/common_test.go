@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"testing"
 
-	"bou.ke/monkey"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 )
 
 func TestDurationStr(t *testing.T) {
@@ -77,13 +77,12 @@ func TestJSONEscape(t *testing.T) {
 	result = JSONEscape(`hello\nworld`)
 	assert.Equal(t, expected, result)
 
-	monkey.Patch(json.Marshal, func(v interface{}) ([]byte, error) {
+	defer gomonkey.ApplyFunc(json.Marshal, func(v interface{}) ([]byte, error) {
 		return nil, fmt.Errorf("error")
-	})
+	}).Reset()
 	expected = `{hello}`
 	result = JSONEscape(`{hello}`)
 	assert.Equal(t, expected, result)
-	monkey.UnpatchAll()
 }
 
 func TestAutoRefreshJS(t *testing.T) {

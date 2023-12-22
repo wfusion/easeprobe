@@ -33,8 +33,8 @@ import (
 	"testing"
 	"time"
 
-	"bou.ke/monkey"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 	"gopkg.in/yaml.v3"
 )
 
@@ -279,14 +279,13 @@ func TestTLS(t *testing.T) {
 	assert.Nil(t, e)
 	assert.NotNil(t, conn)
 
-	monkey.Patch(tls.LoadX509KeyPair, func(certFile, keyFile string) (tls.Certificate, error) {
+	defer gomonkey.ApplyFunc(tls.LoadX509KeyPair, func(certFile, keyFile string) (tls.Certificate, error) {
 		return tls.Certificate{}, fmt.Errorf("load x509 key pair error")
-	})
+	}).Reset()
 
 	conn, e = _tls.Config()
 	assert.NotNil(t, e)
 	assert.Nil(t, conn)
-	monkey.UnpatchAll()
 
 	//TLS
 	_tls = TLS{
@@ -379,19 +378,18 @@ func TestGetWritableDir(t *testing.T) {
 }
 
 func TestGetWorkDirFail(t *testing.T) {
-	defer monkey.UnpatchAll()
-	monkey.Patch(os.Getwd, func() (string, error) {
+	defer gomonkey.ApplyFunc(os.Getwd, func() (string, error) {
 		return "", fmt.Errorf("error")
-	})
+	}).Reset()
 
 	path := GetWorkDir()
 	home, err := os.UserHomeDir()
 	assert.Nil(t, err)
 	assert.Equal(t, path, home)
 
-	monkey.Patch(os.UserHomeDir, func() (string, error) {
+	defer gomonkey.ApplyFunc(os.UserHomeDir, func() (string, error) {
 		return "", fmt.Errorf("error")
-	})
+	}).Reset()
 
 	path = GetWorkDir()
 	assert.Equal(t, path, os.TempDir())
@@ -399,8 +397,7 @@ func TestGetWorkDirFail(t *testing.T) {
 }
 
 func TestMakeDirectoryFail(t *testing.T) {
-	defer monkey.UnpatchAll()
-	monkey.Patch(os.UserHomeDir, func() (string, error) {
+	patch := gomonkey.ApplyFunc(os.UserHomeDir, func() (string, error) {
 		return "", fmt.Errorf("error")
 	})
 
@@ -408,18 +405,18 @@ func TestMakeDirectoryFail(t *testing.T) {
 	result := MakeDirectory(filename)
 	assert.Equal(t, result, filepath.Join(os.TempDir(), filename[2:]))
 
-	monkey.Unpatch(os.UserHomeDir)
+	patch.Reset()
 
-	monkey.Patch(filepath.Abs, func(path string) (string, error) {
+	patch = gomonkey.ApplyFunc(filepath.Abs, func(path string) (string, error) {
 		return "", fmt.Errorf("error")
 	})
 	filename = "../test.txt"
 	result = MakeDirectory(filename)
 	assert.Equal(t, result, filepath.Join(GetWorkDir(), "test.txt"))
 
-	monkey.Unpatch(filepath.Abs)
+	patch.Reset()
 
-	monkey.Patch(os.MkdirAll, func(string, os.FileMode) error {
+	patch = gomonkey.ApplyFunc(os.MkdirAll, func(string, os.FileMode) error {
 		return fmt.Errorf("error")
 	})
 
@@ -427,7 +424,7 @@ func TestMakeDirectoryFail(t *testing.T) {
 	result = MakeDirectory(filename)
 	assert.Equal(t, result, filepath.Join(GetWorkDir(), "test.txt"))
 
-	monkey.Unpatch(os.MkdirAll)
+	patch.Reset()
 
 }
 

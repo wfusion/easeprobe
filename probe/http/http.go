@@ -32,12 +32,13 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
+	"github.com/wfusion/gofusion/common/utils"
 
-	"github.com/megaease/easeprobe/eval"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/metric"
-	"github.com/megaease/easeprobe/probe"
-	"github.com/megaease/easeprobe/probe/base"
+	"github.com/wfusion/easeprobe/eval"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/metric"
+	"github.com/wfusion/easeprobe/probe"
+	"github.com/wfusion/easeprobe/probe/base"
 )
 
 // HTTP implements a config for HTTP.
@@ -255,6 +256,7 @@ func (h *HTTP) DoProbe() (bool, string) {
 		if err != nil {
 			log.Errorf("[%s / %s] - %v", h.ProbeKind, h.ProbeName, err)
 			message += fmt.Sprintf(". Evaluation Error: %v", err)
+			message = message[:utils.Min(len(message), 256)]
 			return false, message
 		}
 		if !result {
@@ -264,6 +266,7 @@ func (h *HTTP) DoProbe() (bool, string) {
 				message += fmt.Sprintf(" [%s = %v]", k, v)
 				log.Debugf("[%s / %s] - Expression Value: [%s] = [%v]", h.ProbeKind, h.ProbeName, k, v)
 			}
+			message = message[:utils.Min(len(message), 256)]
 			return false, message
 		}
 		log.Debugf("[%s / %s] - expression is evaluated to true!", h.ProbeKind, h.ProbeName)

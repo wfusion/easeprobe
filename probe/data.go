@@ -27,8 +27,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/megaease/easeprobe/global"
 	log "github.com/sirupsen/logrus"
+	"github.com/wfusion/easeprobe/global"
 	"gopkg.in/yaml.v3"
 )
 

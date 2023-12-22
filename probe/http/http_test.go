@@ -29,13 +29,13 @@ import (
 	"reflect"
 	"testing"
 
-	"bou.ke/monkey"
-	"github.com/megaease/easeprobe/eval"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe"
-	"github.com/megaease/easeprobe/probe/base"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/eval"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe"
+	"github.com/wfusion/easeprobe/probe/base"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 )
 
 func createHTTP() *HTTP {
@@ -96,9 +96,9 @@ func TestHTTPConfig(t *testing.T) {
 
 	//TLS config success
 	var gtls *global.TLS
-	monkey.PatchInstanceMethod(reflect.TypeOf(gtls), "Config", func(_ *global.TLS) (*tls.Config, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(gtls), "Config", func(_ *global.TLS) (*tls.Config, error) {
 		return &tls.Config{}, nil
-	})
+	}).Reset()
 
 	h.URL = "@$186example.com"
 	err = h.Config(global.ProbeSettings{})
@@ -121,9 +121,9 @@ func TestHTTPConfig(t *testing.T) {
 	assert.NoError(t, err)
 
 	var e *eval.Evaluator
-	monkey.PatchInstanceMethod(reflect.TypeOf(e), "Config", func(_ *eval.Evaluator) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(e), "Config", func(_ *eval.Evaluator) error {
 		return fmt.Errorf("Eval Config Error")
-	})
+	}).Reset()
 	err = h.Config(global.ProbeSettings{})
 	assert.Error(t, err)
 
@@ -131,7 +131,6 @@ func TestHTTPConfig(t *testing.T) {
 	err = h.Config(global.ProbeSettings{})
 	assert.Error(t, err)
 
-	monkey.UnpatchAll()
 }
 
 func TestTextCheckerConfig(t *testing.T) {
@@ -161,22 +160,22 @@ func TestHTTPDoProbe(t *testing.T) {
 	// clear request
 	h := createHTTP()
 	var gtls *global.TLS
-	monkey.PatchInstanceMethod(reflect.TypeOf(gtls), "Config", func(_ *global.TLS) (*tls.Config, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(gtls), "Config", func(_ *global.TLS) (*tls.Config, error) {
 		return &tls.Config{}, nil
 	})
 	err := h.Config(global.ProbeSettings{})
 	assert.NoError(t, err)
 
 	var client *http.Client
-	monkey.PatchInstanceMethod(reflect.TypeOf(client), "Do", func(_ *http.Client, req *http.Request) (*http.Response, error) {
+	patchClientDo := gomonkey.ApplyMethod(reflect.TypeOf(client), "Do", func(_ *http.Client, req *http.Request) (*http.Response, error) {
 		return &http.Response{
 			StatusCode: 200,
 			Body:       io.NopCloser(io.NopCloser(nil)),
 		}, nil
 	})
-	monkey.Patch(io.ReadAll, func(r io.Reader) ([]byte, error) {
+	defer gomonkey.ApplyFunc(io.ReadAll, func(r io.Reader) ([]byte, error) {
 		return []byte(`{ "name": "EaseProbe", "status": "good"}`), nil
-	})
+	}).Reset()
 
 	s, m := h.DoProbe()
 	assert.True(t, s)
@@ -194,9 +193,9 @@ func TestHTTPDoProbe(t *testing.T) {
 	assert.Contains(t, m, "Evaluation Error")
 
 	// response does not contain good string
-	monkey.Patch(io.ReadAll, func(r io.Reader) ([]byte, error) {
+	defer gomonkey.ApplyFunc(io.ReadAll, func(r io.Reader) ([]byte, error) {
 		return []byte("bad"), nil
-	})
+	}).Reset()
 	s, m = h.DoProbe()
 	assert.False(t, s)
 	assert.Contains(t, m, "good")
@@ -208,24 +207,24 @@ func TestHTTPDoProbe(t *testing.T) {
 	assert.Contains(t, m, "bad")
 
 	// DialContext error
-	monkey.UnpatchInstanceMethod(reflect.TypeOf(client), "Do")
+	patchClientDo.Reset()
 	var dialer *net.Dialer
-	monkey.PatchInstanceMethod(reflect.TypeOf(dialer), "DialContext", func(_ *net.Dialer, _ context.Context, network, address string) (net.Conn, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(dialer), "DialContext", func(_ *net.Dialer, _ context.Context, network, address string) (net.Conn, error) {
 		return nil, fmt.Errorf("DialContext Error")
-	})
+	}).Reset()
 	s, m = h.DoProbe()
 	assert.False(t, s)
 	assert.Contains(t, m, "DialContext Error")
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(dialer), "DialContext", func(_ *net.Dialer, _ context.Context, network, address string) (net.Conn, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(dialer), "DialContext", func(_ *net.Dialer, _ context.Context, network, address string) (net.Conn, error) {
 		return &net.UnixConn{}, nil
-	})
+	}).Reset()
 	s, m = h.DoProbe()
 	assert.False(t, s)
 	assert.Contains(t, m, "invalid argument")
 
 	// response is 503
-	monkey.PatchInstanceMethod(reflect.TypeOf(client), "Do", func(_ *http.Client, req *http.Request) (*http.Response, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(client), "Do", func(_ *http.Client, req *http.Request) (*http.Response, error) {
 		assert.Equal(t, "GET", req.Method)
 		assert.Equal(t, "value1", req.Header.Get("header1"))
 		assert.Equal(t, "value2", req.Header.Get("header2"))
@@ -234,41 +233,39 @@ func TestHTTPDoProbe(t *testing.T) {
 			StatusCode: 503,
 			Body:       io.NopCloser(io.NopCloser(nil)),
 		}, nil
-	})
+	}).Reset()
 	s, m = h.DoProbe()
 	assert.False(t, s)
 	assert.Contains(t, m, "503")
 
 	// io read failure
-	monkey.Patch(io.ReadAll, func(r io.Reader) ([]byte, error) {
+	defer gomonkey.ApplyFunc(io.ReadAll, func(r io.Reader) ([]byte, error) {
 		return nil, fmt.Errorf("read error")
-	})
+	}).Reset()
 	s, m = h.DoProbe()
 	assert.False(t, s)
 	assert.Contains(t, m, "read error")
 
 	// request failure
-	monkey.PatchInstanceMethod(reflect.TypeOf(client), "Do", func(_ *http.Client, req *http.Request) (*http.Response, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(client), "Do", func(_ *http.Client, req *http.Request) (*http.Response, error) {
 		return nil, fmt.Errorf("request error")
-	})
+	}).Reset()
 	s, m = h.DoProbe()
 	assert.False(t, s)
 	assert.Contains(t, m, "request error")
 
 	// http new request failure
-	monkey.Patch(http.NewRequest, func(method, url string, body io.Reader) (*http.Request, error) {
+	defer gomonkey.ApplyFunc(http.NewRequest, func(method, url string, body io.Reader) (*http.Request, error) {
 		return nil, fmt.Errorf("new request error")
-	})
+	}).Reset()
 	s, m = h.DoProbe()
 	assert.False(t, s)
 	assert.Contains(t, m, "new request error")
 
-	monkey.UnpatchAll()
-
 	var d *net.Dialer
-	monkey.PatchInstanceMethod(reflect.TypeOf(d), "DialContext", func(*net.Dialer, context.Context, string, string) (net.Conn, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(d), "DialContext", func(*net.Dialer, context.Context, string, string) (net.Conn, error) {
 		return &net.TCPConn{}, nil
-	})
+	}).Reset()
 
 	h.TLS = global.TLS{
 		CA:   "",
@@ -283,5 +280,4 @@ func TestHTTPDoProbe(t *testing.T) {
 	assert.False(t, s)
 	assert.NotContains(t, m, "200")
 
-	monkey.UnpatchAll()
 }

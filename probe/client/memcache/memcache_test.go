@@ -23,10 +23,10 @@ import (
 	"testing"
 	"time"
 
-	"bou.ke/monkey"
 	"github.com/bradfitz/gomemcache/memcache"
-	"github.com/megaease/easeprobe/probe/client/conf"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/probe/client/conf"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 )
 
 func TestMemcache(t *testing.T) {
@@ -56,7 +56,7 @@ func TestMemcache(t *testing.T) {
 
 	// mock the memcached server
 	var mc *memcache.Client
-	monkey.PatchInstanceMethod(reflect.TypeOf(mc), "GetMulti", func(*memcache.Client, []string) (map[string]*memcache.Item, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(mc), "GetMulti", func(*memcache.Client, []string) (map[string]*memcache.Item, error) {
 		return map[string]*memcache.Item{
 			"sysconfig:event_active": {
 				Key:        "",
@@ -65,13 +65,13 @@ func TestMemcache(t *testing.T) {
 				Expiration: 0,
 			},
 		}, nil
-	})
+	}).Reset()
 
 	s, msg := m.Probe()
 	assert.True(t, s)
 	assert.Contains(t, msg, "successfully")
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(mc), "GetMulti", func(*memcache.Client, []string) (map[string]*memcache.Item, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(mc), "GetMulti", func(*memcache.Client, []string) (map[string]*memcache.Item, error) {
 		return map[string]*memcache.Item{
 			"sysconfig:event_active": {
 				Key:        "sysconfig:event_active",
@@ -80,12 +80,12 @@ func TestMemcache(t *testing.T) {
 				Expiration: 0,
 			},
 		}, nil
-	})
+	}).Reset()
 	s, msg = m.Probe()
 	assert.False(t, s)
 	assert.Contains(t, msg, "expected")
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(mc), "GetMulti", func(*memcache.Client, []string) (map[string]*memcache.Item, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(mc), "GetMulti", func(*memcache.Client, []string) (map[string]*memcache.Item, error) {
 		return map[string]*memcache.Item{
 			"sysconfig:event_active": {
 				Key:        "sysconfig:event_active",
@@ -94,14 +94,14 @@ func TestMemcache(t *testing.T) {
 				Expiration: 0,
 			},
 		}, nil
-	})
+	}).Reset()
 	s, msg = m.Probe()
 	assert.True(t, s)
 	assert.Contains(t, msg, "successfully")
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(mc), "GetMulti", func(*memcache.Client, []string) (map[string]*memcache.Item, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(mc), "GetMulti", func(*memcache.Client, []string) (map[string]*memcache.Item, error) {
 		return map[string]*memcache.Item{}, nil
-	})
+	}).Reset()
 	s, msg = m.Probe()
 	assert.False(t, s)
 	assert.Contains(t, msg, "expected")
@@ -111,14 +111,12 @@ func TestMemcache(t *testing.T) {
 	s, msg = m.Probe()
 	assert.False(t, s)
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(mc), "Ping", func(*memcache.Client) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(mc), "Ping", func(*memcache.Client) error {
 		return nil
-	})
+	}).Reset()
 
 	s, msg = m.Probe()
 	assert.True(t, s)
 	assert.Contains(t, msg, "Successfully")
-
-	monkey.UnpatchAll()
 
 }

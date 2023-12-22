@@ -22,10 +22,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe"
-	"github.com/megaease/easeprobe/probe/ssh"
 	log "github.com/sirupsen/logrus"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe"
+	"github.com/wfusion/easeprobe/probe/ssh"
 )
 
 // Server is the server of a host probe

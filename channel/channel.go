@@ -22,9 +22,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/megaease/easeprobe/notify"
-	"github.com/megaease/easeprobe/probe"
 	log "github.com/sirupsen/logrus"
+	"github.com/wfusion/easeprobe/notify"
+	"github.com/wfusion/easeprobe/probe"
 )
 
 const kind = "channel"

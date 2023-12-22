@@ -23,11 +23,11 @@ import (
 	"runtime"
 	"testing"
 
-	"bou.ke/monkey"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe/base"
 	ping "github.com/prometheus-community/pro-bing"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe/base"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 )
 
 func TestPing(t *testing.T) {
@@ -69,9 +69,9 @@ func TestPingWithInvalidHost(t *testing.T) {
 	p.Config(global.ProbeSettings{})
 
 	var pinger *ping.Pinger
-	monkey.PatchInstanceMethod(reflect.TypeOf(pinger), "Statistics", func(_ *ping.Pinger) *ping.Statistics {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(pinger), "Statistics", func(_ *ping.Pinger) *ping.Statistics {
 		return &ping.Statistics{PacketLoss: 51}
-	})
+	}).Reset()
 	if runtime.GOOS == "windows" {
 		p.Privileged = true
 	}
@@ -79,9 +79,9 @@ func TestPingWithInvalidHost(t *testing.T) {
 	assert.False(t, s)
 	assert.Contains(t, m, "Failed")
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(pinger), "Run", func(_ *ping.Pinger) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(pinger), "Run", func(_ *ping.Pinger) error {
 		return fmt.Errorf("ping error")
-	})
+	}).Reset()
 	s, m = p.DoProbe()
 	assert.False(t, s)
 	assert.Contains(t, m, "ping error")

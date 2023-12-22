@@ -29,12 +29,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/megaease/easeprobe/channel"
-	"github.com/megaease/easeprobe/conf"
-	"github.com/megaease/easeprobe/daemon"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe"
-	"github.com/megaease/easeprobe/web"
+	"github.com/wfusion/easeprobe/channel"
+	"github.com/wfusion/easeprobe/conf"
+	"github.com/wfusion/easeprobe/daemon"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe"
+	"github.com/wfusion/easeprobe/web"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -151,7 +151,7 @@ func main() {
 	// Configure the Notifiers
 	notifies = configNotifiers(notifies)
 	if len(notifies) == 0 {
-		log.Fatal("No notifies configured, exiting...")
+		log.Warning("No notifies configured, exiting...")
 	}
 
 	// configure channels
@@ -188,6 +188,8 @@ func main() {
 	} else {
 		log.Info("No SLA Report would be sent!!")
 	}
+
+	runMetric(doneSave)
 
 	////////////////////////////////////////////////////////////////////////////
 	//                          Rotate the log file                           //

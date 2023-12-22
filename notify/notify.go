@@ -19,21 +19,21 @@
 package notify
 
 import (
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/notify/aws"
-	"github.com/megaease/easeprobe/notify/dingtalk"
-	"github.com/megaease/easeprobe/notify/discord"
-	"github.com/megaease/easeprobe/notify/email"
-	"github.com/megaease/easeprobe/notify/lark"
-	"github.com/megaease/easeprobe/notify/log"
-	"github.com/megaease/easeprobe/notify/ringcentral"
-	"github.com/megaease/easeprobe/notify/shell"
-	"github.com/megaease/easeprobe/notify/slack"
-	"github.com/megaease/easeprobe/notify/sms"
-	"github.com/megaease/easeprobe/notify/teams"
-	"github.com/megaease/easeprobe/notify/telegram"
-	"github.com/megaease/easeprobe/notify/wecom"
-	"github.com/megaease/easeprobe/probe"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/notify/aws"
+	"github.com/wfusion/easeprobe/notify/dingtalk"
+	"github.com/wfusion/easeprobe/notify/discord"
+	"github.com/wfusion/easeprobe/notify/email"
+	"github.com/wfusion/easeprobe/notify/lark"
+	"github.com/wfusion/easeprobe/notify/log"
+	"github.com/wfusion/easeprobe/notify/ringcentral"
+	"github.com/wfusion/easeprobe/notify/shell"
+	"github.com/wfusion/easeprobe/notify/slack"
+	"github.com/wfusion/easeprobe/notify/sms"
+	"github.com/wfusion/easeprobe/notify/teams"
+	"github.com/wfusion/easeprobe/notify/telegram"
+	"github.com/wfusion/easeprobe/notify/wecom"
+	"github.com/wfusion/easeprobe/probe"
 )
 
 // Config is the notify configuration

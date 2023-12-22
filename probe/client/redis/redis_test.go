@@ -24,11 +24,11 @@ import (
 	"reflect"
 	"testing"
 
-	"bou.ke/monkey"
 	"github.com/go-redis/redis/v8"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe/client/conf"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe/client/conf"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 )
 
 func TestRedis(t *testing.T) {
@@ -57,16 +57,16 @@ func TestRedis(t *testing.T) {
 	assert.Nil(t, r.tls)
 
 	var client *redis.Client
-	monkey.PatchInstanceMethod(reflect.TypeOf(client), "Ping", func(_ *redis.Client, ctx context.Context) *redis.StatusCmd {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(client), "Ping", func(_ *redis.Client, ctx context.Context) *redis.StatusCmd {
 		return &redis.StatusCmd{}
-	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(client), "Close", func(_ *redis.Client) error {
+	}).Reset()
+	defer gomonkey.ApplyMethod(reflect.TypeOf(client), "Close", func(_ *redis.Client) error {
 		return nil
-	})
+	}).Reset()
 	var statusCmd *redis.StatusCmd
-	monkey.PatchInstanceMethod(reflect.TypeOf(statusCmd), "Result", func(_ *redis.StatusCmd) (string, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(statusCmd), "Result", func(_ *redis.StatusCmd) (string, error) {
 		return "PONG", nil
-	})
+	}).Reset()
 
 	s, m := r.Probe()
 	assert.True(t, s)
@@ -74,9 +74,9 @@ func TestRedis(t *testing.T) {
 
 	// TLS config success
 	var tc *global.TLS
-	monkey.PatchInstanceMethod(reflect.TypeOf(tc), "Config", func(_ *global.TLS) (*tls.Config, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(tc), "Config", func(_ *global.TLS) (*tls.Config, error) {
 		return &tls.Config{}, nil
-	})
+	}).Reset()
 
 	r, err = New(conf)
 	assert.NotNil(t, r)
@@ -88,14 +88,12 @@ func TestRedis(t *testing.T) {
 	assert.Contains(t, m, "Successfully")
 
 	// Ping error
-	monkey.PatchInstanceMethod(reflect.TypeOf(statusCmd), "Result", func(_ *redis.StatusCmd) (string, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(statusCmd), "Result", func(_ *redis.StatusCmd) (string, error) {
 		return "", fmt.Errorf("ping error")
-	})
+	}).Reset()
 	s, m = r.Probe()
 	assert.False(t, s)
 	assert.Contains(t, m, "ping error")
-
-	monkey.UnpatchAll()
 
 }
 
@@ -115,31 +113,30 @@ func TestData(t *testing.T) {
 	assert.Nil(t, err)
 
 	var client *redis.Client
-	monkey.PatchInstanceMethod(reflect.TypeOf(client), "Get", func(_ *redis.Client, ctx context.Context, key string) *redis.StringCmd {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(client), "Get", func(_ *redis.Client, ctx context.Context, key string) *redis.StringCmd {
 		return &redis.StringCmd{}
-	})
+	}).Reset()
 	var cmd *redis.StringCmd
-	monkey.PatchInstanceMethod(reflect.TypeOf(cmd), "Result", func(_ *redis.StringCmd) (string, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(cmd), "Result", func(_ *redis.StringCmd) (string, error) {
 		return "value1", nil
-	})
+	}).Reset()
 
 	s, m := r.Probe()
 	assert.True(t, s)
 	assert.Contains(t, m, "Successfully")
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(cmd), "Result", func(_ *redis.StringCmd) (string, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(cmd), "Result", func(_ *redis.StringCmd) (string, error) {
 		return "value", nil
-	})
+	}).Reset()
 	s, m = r.Probe()
 	assert.False(t, s)
 	assert.Contains(t, m, "value")
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(cmd), "Result", func(_ *redis.StringCmd) (string, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(cmd), "Result", func(_ *redis.StringCmd) (string, error) {
 		return "", fmt.Errorf("get result error")
-	})
+	}).Reset()
 	s, m = r.Probe()
 	assert.False(t, s)
 	assert.Contains(t, m, "get result error")
 
-	monkey.UnpatchAll()
 }

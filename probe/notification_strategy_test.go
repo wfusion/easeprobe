@@ -20,8 +20,8 @@ package probe
 import (
 	"testing"
 
-	"github.com/megaease/easeprobe/global"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/global"
 	"gopkg.in/yaml.v3"
 )
 

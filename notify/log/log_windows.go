@@ -21,8 +21,8 @@
 package log
 
 import (
-	"github.com/megaease/easeprobe/report"
 	log "github.com/sirupsen/logrus"
+	"github.com/wfusion/easeprobe/report"
 )
 
 // ConfigLog is the config for log

@@ -21,17 +21,17 @@ package client
 import (
 	"fmt"
 
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe"
-	"github.com/megaease/easeprobe/probe/client/conf"
-	"github.com/megaease/easeprobe/probe/client/kafka"
-	"github.com/megaease/easeprobe/probe/client/memcache"
-	"github.com/megaease/easeprobe/probe/client/mongo"
-	"github.com/megaease/easeprobe/probe/client/mysql"
-	"github.com/megaease/easeprobe/probe/client/postgres"
-	"github.com/megaease/easeprobe/probe/client/redis"
-	"github.com/megaease/easeprobe/probe/client/zookeeper"
 	log "github.com/sirupsen/logrus"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe"
+	"github.com/wfusion/easeprobe/probe/client/conf"
+	"github.com/wfusion/easeprobe/probe/client/kafka"
+	"github.com/wfusion/easeprobe/probe/client/memcache"
+	"github.com/wfusion/easeprobe/probe/client/mongo"
+	"github.com/wfusion/easeprobe/probe/client/mysql"
+	"github.com/wfusion/easeprobe/probe/client/postgres"
+	"github.com/wfusion/easeprobe/probe/client/redis"
+	"github.com/wfusion/easeprobe/probe/client/zookeeper"
 )
 
 // Client implements the structure of client

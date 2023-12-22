@@ -26,8 +26,8 @@ import (
 	"time"
 
 	"github.com/go-zookeeper/zk"
-	"github.com/megaease/easeprobe/probe/client/conf"
 	log "github.com/sirupsen/logrus"
+	"github.com/wfusion/easeprobe/probe/client/conf"
 )
 
 // Kind is the type of driver

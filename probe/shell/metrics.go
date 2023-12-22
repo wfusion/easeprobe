@@ -18,9 +18,9 @@
 package shell
 
 import (
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/metric"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/metric"
 )
 
 // metrics is the metrics for shell probe

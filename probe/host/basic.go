@@ -22,9 +22,9 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/metric"
-	"github.com/megaease/easeprobe/probe/base"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/metric"
+	"github.com/wfusion/easeprobe/probe/base"
 )
 
 // Basic is the basic information of the host

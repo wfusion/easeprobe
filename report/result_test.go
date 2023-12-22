@@ -27,10 +27,10 @@ import (
 	"testing"
 	"time"
 
-	"bou.ke/monkey"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 )
 
 func newDummyResult(name string) probe.Result {
@@ -119,19 +119,17 @@ func TestResultToJSON(t *testing.T) {
 	assert.Nil(t, err)
 	checkResult(t, r, rDTO)
 
-	monkey.Patch(json.Marshal, func(v interface{}) ([]byte, error) {
+	defer gomonkey.ApplyFunc(json.Marshal, func(v interface{}) ([]byte, error) {
 		return nil, fmt.Errorf("marshal error")
-	})
+	}).Reset()
 	str = ToJSON(r)
 	assert.Empty(t, str)
 
-	monkey.Patch(json.MarshalIndent, func(interface{}, string, string) ([]byte, error) {
+	defer gomonkey.ApplyFunc(json.MarshalIndent, func(interface{}, string, string) ([]byte, error) {
 		return nil, fmt.Errorf("marshal error")
-	})
+	}).Reset()
 	str = ToJSONIndent(r)
 	assert.Empty(t, str)
-
-	monkey.UnpatchAll()
 
 }
 
@@ -247,16 +245,14 @@ func TestResultToShell(t *testing.T) {
 	assert.Equal(t, data[1][8], r.Message)
 
 	var w *csv.Writer
-	monkey.PatchInstanceMethod(reflect.TypeOf(w), "WriteAll", func(_ *csv.Writer, _ [][]string) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(w), "WriteAll", func(_ *csv.Writer, _ [][]string) error {
 		return fmt.Errorf("error")
-	})
+	}).Reset()
 	assert.Empty(t, ToCSV(r))
 
-	monkey.Patch(json.Marshal, func(v any) ([]byte, error) {
+	defer gomonkey.ApplyFunc(json.Marshal, func(v any) ([]byte, error) {
 		return nil, fmt.Errorf("error")
-	})
+	}).Reset()
 	assert.Empty(t, ToShell(r))
-
-	monkey.UnpatchAll()
 
 }

@@ -22,8 +22,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/notify/base"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/notify/base"
 
 	log "github.com/sirupsen/logrus"
 )

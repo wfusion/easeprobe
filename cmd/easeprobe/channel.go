@@ -18,11 +18,11 @@
 package main
 
 import (
-	"github.com/megaease/easeprobe/channel"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/notify"
-	"github.com/megaease/easeprobe/probe"
 	log "github.com/sirupsen/logrus"
+	"github.com/wfusion/easeprobe/channel"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/notify"
+	"github.com/wfusion/easeprobe/probe"
 )
 
 func configChannels(probers []probe.Prober, notifiers []notify.Notify) {

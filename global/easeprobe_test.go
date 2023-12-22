@@ -23,8 +23,8 @@ import (
 	"testing"
 	"time"
 
-	"bou.ke/monkey"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 )
 
 func TestEaseProbe(t *testing.T) {
@@ -54,14 +54,12 @@ func TestEaseProbe(t *testing.T) {
 //
 //	"go.testFlags": ["-gcflags=-l"],
 func TestEaseProbeFail(t *testing.T) {
-	monkey.Patch(os.Hostname, func() (string, error) {
+	defer gomonkey.ApplyFunc(os.Hostname, func() (string, error) {
 		return "", fmt.Errorf("error")
-	})
+	}).Reset()
 	InitEaseProbe("test", "icon")
 	e := GetEaseProbe()
 	assert.Equal(t, "unknown", e.Host)
-
-	monkey.Unpatch(os.Hostname)
 }
 
 func TestEaseProbeTime(t *testing.T) {

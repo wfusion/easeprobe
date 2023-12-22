@@ -25,10 +25,10 @@ import (
 	"testing"
 	"time"
 
-	"bou.ke/monkey"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe/client/conf"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe/client/conf"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 
 	"github.com/go-zookeeper/zk"
 )
@@ -57,30 +57,30 @@ func TestZooKeeper(t *testing.T) {
 	assert.Nil(t, e)
 	assert.Equal(t, "ZooKeeper", z.Kind())
 
-	monkey.Patch(net.DialTimeout, func(network, address string, timeout time.Duration) (net.Conn, error) {
+	defer gomonkey.ApplyFunc(net.DialTimeout, func(network, address string, timeout time.Duration) (net.Conn, error) {
 		return &net.TCPConn{}, nil
-	})
+	}).Reset()
 
 	var conn *zk.Conn
-	monkey.PatchInstanceMethod(reflect.TypeOf(conn), "Get", func(_ *zk.Conn, path string) ([]byte, *zk.Stat, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(conn), "Get", func(_ *zk.Conn, path string) ([]byte, *zk.Stat, error) {
 		return []byte("test"), &zk.Stat{}, nil
-	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(conn), "Close", func(_ *zk.Conn) {
+	}).Reset()
+	defer gomonkey.ApplyMethod(reflect.TypeOf(conn), "Close", func(_ *zk.Conn) {
 		return
-	})
+	}).Reset()
 
-	monkey.Patch(zk.ConnectWithDialer, func(servers []string, sessionTimeout time.Duration, dialer zk.Dialer) (*zk.Conn, <-chan zk.Event, error) {
+	defer gomonkey.ApplyFunc(zk.ConnectWithDialer, func(servers []string, sessionTimeout time.Duration, dialer zk.Dialer) (*zk.Conn, <-chan zk.Event, error) {
 		return &zk.Conn{}, nil, nil
-	})
+	}).Reset()
 	s, m := z.Probe()
 	assert.True(t, s)
 	assert.Contains(t, m, "Successfully")
 
 	// TLS config success
 	var tc *global.TLS
-	monkey.PatchInstanceMethod(reflect.TypeOf(tc), "Config", func(_ *global.TLS) (*tls.Config, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(tc), "Config", func(_ *global.TLS) (*tls.Config, error) {
 		return &tls.Config{}, nil
-	})
+	}).Reset()
 	z, e = New(conf)
 	assert.NotNil(t, z)
 	assert.Nil(t, e)
@@ -91,22 +91,21 @@ func TestZooKeeper(t *testing.T) {
 	assert.Contains(t, m, "Successfully")
 
 	// Get error
-	monkey.PatchInstanceMethod(reflect.TypeOf(conn), "Get", func(_ *zk.Conn, path string) ([]byte, *zk.Stat, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(conn), "Get", func(_ *zk.Conn, path string) ([]byte, *zk.Stat, error) {
 		return nil, nil, fmt.Errorf("get error")
-	})
+	}).Reset()
 	s, m = z.Probe()
 	assert.False(t, s)
 	assert.Contains(t, m, "get error")
 
 	// Connect error
-	monkey.Patch(zk.ConnectWithDialer, func(servers []string, sessionTimeout time.Duration, dialer zk.Dialer) (*zk.Conn, <-chan zk.Event, error) {
+	defer gomonkey.ApplyFunc(zk.ConnectWithDialer, func(servers []string, sessionTimeout time.Duration, dialer zk.Dialer) (*zk.Conn, <-chan zk.Event, error) {
 		return nil, nil, fmt.Errorf("connect error")
-	})
+	}).Reset()
 	s, m = z.Probe()
 	assert.False(t, s)
 	assert.Contains(t, m, "connect error")
 
-	monkey.UnpatchAll()
 }
 
 func TestGetDialer(t *testing.T) {
@@ -127,31 +126,31 @@ func TestGetDialer(t *testing.T) {
 
 	fn := getDialer(zConf)
 
-	monkey.Patch(net.DialTimeout, func(network, address string, timeout time.Duration) (net.Conn, error) {
+	defer gomonkey.ApplyFunc(net.DialTimeout, func(network, address string, timeout time.Duration) (net.Conn, error) {
 		return &net.TCPConn{}, nil
-	})
+	}).Reset()
 	var tlsConn *tls.Conn
-	monkey.PatchInstanceMethod(reflect.TypeOf(tlsConn), "Handshake", func(_ *tls.Conn) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(tlsConn), "Handshake", func(_ *tls.Conn) error {
 		return nil
-	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(tlsConn), "Close", func(_ *tls.Conn) error {
+	}).Reset()
+	defer gomonkey.ApplyMethod(reflect.TypeOf(tlsConn), "Close", func(_ *tls.Conn) error {
 		return nil
-	})
+	}).Reset()
 
 	conn, err := fn("tcp", zConf.Host, time.Second)
 	assert.Nil(t, err)
 	assert.NotNil(t, conn)
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(tlsConn), "Handshake", func(_ *tls.Conn) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(tlsConn), "Handshake", func(_ *tls.Conn) error {
 		return fmt.Errorf("handshake error")
-	})
+	}).Reset()
 	conn, err = fn("tcp", zConf.Host, time.Second)
 	assert.Equal(t, "handshake error", err.Error())
 	assert.Nil(t, conn)
 
-	monkey.Patch(net.DialTimeout, func(network, address string, timeout time.Duration) (net.Conn, error) {
+	defer gomonkey.ApplyFunc(net.DialTimeout, func(network, address string, timeout time.Duration) (net.Conn, error) {
 		return nil, fmt.Errorf("dial error")
-	})
+	}).Reset()
 	conn, err = fn("tcp", zConf.Host, time.Second)
 	assert.Equal(t, "dial error", err.Error())
 	assert.Nil(t, conn)
@@ -170,19 +169,19 @@ func TestData(t *testing.T) {
 		},
 	}
 
-	monkey.Patch(getDialer, func(z *Zookeeper) func(string, string, time.Duration) (net.Conn, error) {
+	defer gomonkey.ApplyFunc(getDialer, func(z *Zookeeper) func(string, string, time.Duration) (net.Conn, error) {
 		return net.DialTimeout
-	})
-	monkey.Patch(zk.ConnectWithDialer, func(servers []string, sessionTimeout time.Duration, dialer zk.Dialer) (*zk.Conn, <-chan zk.Event, error) {
+	}).Reset()
+	defer gomonkey.ApplyFunc(zk.ConnectWithDialer, func(servers []string, sessionTimeout time.Duration, dialer zk.Dialer) (*zk.Conn, <-chan zk.Event, error) {
 		return &zk.Conn{}, nil, nil
-	})
+	}).Reset()
 	var conn *zk.Conn
-	monkey.PatchInstanceMethod(reflect.TypeOf(conn), "Close", func(_ *zk.Conn) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(conn), "Close", func(_ *zk.Conn) {
 		return
-	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(conn), "Get", func(_ *zk.Conn, path string) ([]byte, *zk.Stat, error) {
+	}).Reset()
+	defer gomonkey.ApplyMethod(reflect.TypeOf(conn), "Get", func(_ *zk.Conn, path string) ([]byte, *zk.Stat, error) {
 		return []byte("test"), &zk.Stat{}, nil
-	})
+	}).Reset()
 
 	s, m := z.Probe()
 	assert.True(t, s)
@@ -195,13 +194,11 @@ func TestData(t *testing.T) {
 	assert.False(t, s)
 	assert.Contains(t, m, "Data not match")
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(conn), "Get", func(_ *zk.Conn, path string) ([]byte, *zk.Stat, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(conn), "Get", func(_ *zk.Conn, path string) ([]byte, *zk.Stat, error) {
 		return []byte(""), &zk.Stat{}, fmt.Errorf("get error")
-	})
+	}).Reset()
 	s, m = z.Probe()
 	assert.False(t, s)
 	assert.Contains(t, m, "get error")
-
-	monkey.UnpatchAll()
 
 }

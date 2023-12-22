@@ -21,9 +21,9 @@ import (
 	"crypto/tls"
 	"time"
 
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/metric"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/metric"
 )
 
 // code and metric idea from https://github.com/prometheus/blackbox_exporter/blob/master/prober/tls.go

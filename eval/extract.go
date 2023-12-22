@@ -27,6 +27,8 @@ import (
 	hq "github.com/antchfx/htmlquery"
 	jq "github.com/antchfx/jsonquery"
 	xq "github.com/antchfx/xmlquery"
+	"github.com/wfusion/gofusion/common/utils"
+	"github.com/wfusion/gofusion/common/utils/serialize/json"
 	"golang.org/x/net/html"
 )
 
@@ -43,6 +45,8 @@ type BaseExtractor struct {
 	Name         string  `yaml:"name"` // variable name
 	VarType      VarType `yaml:"type"` // variable type
 	Document     string  `yaml:"-"`
+	DocType      DocType `yaml:"-"`
+	XPath        string  `yaml:"-"`
 	ExtractStrFn func() (string, error)
 }
 
@@ -71,6 +75,8 @@ func (x *BaseExtractor) Extract() (interface{}, error) {
 		return x.ExtractTime()
 	case Duration:
 		return x.ExtractDuration()
+	case LengthVariable:
+		return x.ExtractLengthVariable()
 	}
 	return nil, fmt.Errorf("unknown type: %s", x.VarType)
 }
@@ -161,6 +167,70 @@ func (x *BaseExtractor) ExtractDuration() (time.Duration, error) {
 	return time.ParseDuration(s)
 }
 
+func (x *BaseExtractor) ExtractLengthVariable() (any, error) {
+	s, err := x.ExtractStrFn()
+	if err != nil {
+		return nil, err
+	}
+	switch x.DocType {
+	case HTML:
+		root, err := html.Parse(strings.NewReader(s))
+		if err != nil {
+			return nil, err
+		}
+		nodes, err := hq.QueryAll(root, x.XPath)
+		if err != nil {
+			return nil, err
+		}
+		values := make([]any, 0, len(nodes))
+		for i := 0; i < len(nodes); i++ {
+			for child := nodes[i].FirstChild; child != nil; child = child.NextSibling {
+				switch child.Type {
+				case html.ElementNode:
+					for grandChild := child.FirstChild; grandChild != nil; grandChild = grandChild.NextSibling {
+						if grandChild.Type == html.TextNode {
+							values = append(values, hq.InnerText(grandChild))
+						}
+					}
+				default:
+					if child.Type == html.TextNode {
+						values = append(values, hq.InnerText(child))
+					}
+				}
+			}
+		}
+		return values, nil
+	case XML:
+		root, err := xq.Parse(strings.NewReader(s))
+		if err != nil {
+			return nil, err
+		}
+		node := root.SelectElement(x.XPath)
+		var values []any
+		for child := node.FirstChild; child != nil; child = child.NextSibling {
+			switch child.Type {
+			case xq.ElementNode:
+				for grandChild := child.FirstChild; grandChild != nil; grandChild = grandChild.NextSibling {
+					values = append(values, grandChild.OutputXML(true))
+				}
+			default:
+				if child.Type == xq.TextNode {
+					values = append(values, child.Data)
+				}
+			}
+		}
+		return values, nil
+	case TEXT, JSON:
+		parent, err := jq.Parse(strings.NewReader(s))
+		if err != nil {
+			return nil, err
+		}
+		return utils.SliceMapping(parent.ChildNodes(), func(n *jq.Node) any { return n.Value() }), nil
+	default:
+		return nil, fmt.Errorf("Cannot parse the length: %s", s)
+	}
+}
+
 // -----------------------------------------------------------------------------
 
 // XPathNode is the generic type for xpath node
@@ -180,6 +250,7 @@ type XPathExtractor[T XPathNode] struct {
 // SetQuery sets the xpath expression
 func (x *XPathExtractor[T]) SetQuery(q string) {
 	x.XPath = q
+	x.BaseExtractor.XPath = q
 }
 
 // Query query the string from the document by xpath expression
@@ -207,11 +278,12 @@ func (x *XPathExtractor[T]) ExtractStr() (string, error) {
 }
 
 // NewJSONExtractor creates a new JSONExtractor
-func NewJSONExtractor(document string) *XPathExtractor[jq.Node] {
+func NewJSONExtractor(document string, docType DocType) *XPathExtractor[jq.Node] {
 	x := &XPathExtractor[jq.Node]{
 		BaseExtractor: BaseExtractor{
 			VarType:  String,
 			Document: document,
+			DocType:  docType,
 		},
 		Parser: func(document string) (*jq.Node, error) {
 			return jq.Parse(strings.NewReader(document))
@@ -220,7 +292,18 @@ func NewJSONExtractor(document string) *XPathExtractor[jq.Node] {
 			return jq.Query(doc, xpath)
 		},
 		Inner: func(n *jq.Node) string {
-			return n.InnerText()
+			switch n.Type {
+			case jq.DocumentNode, jq.TextNode:
+				return n.InnerText()
+			default:
+				switch n.Value().(type) {
+				case []any, []map[string]any, map[string]any:
+					bs, _ := json.Marshal(n.Value())
+					return string(bs)
+				default:
+					return n.InnerText()
+				}
+			}
 		},
 	}
 	x.ExtractStrFn = x.ExtractStr
@@ -228,11 +311,12 @@ func NewJSONExtractor(document string) *XPathExtractor[jq.Node] {
 }
 
 // NewXMLExtractor creates a new XMLExtractor
-func NewXMLExtractor(document string) *XPathExtractor[xq.Node] {
+func NewXMLExtractor(document string, docType DocType) *XPathExtractor[xq.Node] {
 	x := &XPathExtractor[xq.Node]{
 		BaseExtractor: BaseExtractor{
 			VarType:  String,
 			Document: document,
+			DocType:  docType,
 		},
 		Parser: func(document string) (*xq.Node, error) {
 			return xq.Parse(strings.NewReader(document))
@@ -241,7 +325,21 @@ func NewXMLExtractor(document string) *XPathExtractor[xq.Node] {
 			return xq.Query(doc, xpath)
 		},
 		Inner: func(n *xq.Node) string {
-			return n.InnerText()
+			switch n.Type {
+			case xq.DocumentNode,
+				xq.TextNode,
+				xq.DeclarationNode,
+				xq.CharDataNode,
+				xq.CommentNode,
+				xq.AttributeNode:
+				return n.InnerText()
+			default:
+				if n.FirstChild == nil || (n.FirstChild.Type == xq.TextNode && n.FirstChild.NextSibling == nil) {
+					return n.InnerText()
+				} else {
+					return n.OutputXML(true)
+				}
+			}
 		},
 	}
 	x.ExtractStrFn = x.ExtractStr
@@ -249,20 +347,56 @@ func NewXMLExtractor(document string) *XPathExtractor[xq.Node] {
 }
 
 // NewHTMLExtractor creates a new HTMLExtractor
-func NewHTMLExtractor(document string) *XPathExtractor[html.Node] {
+func NewHTMLExtractor(document string, docType DocType) *XPathExtractor[html.Node] {
 	x := &XPathExtractor[html.Node]{
 		BaseExtractor: BaseExtractor{
 			VarType:  String,
 			Document: document,
+			DocType:  docType,
 		},
 		Parser: func(document string) (*html.Node, error) {
 			return html.Parse(strings.NewReader(document))
 		},
 		Query: func(doc *html.Node, xpath string) (*html.Node, error) {
-			return hq.Query(doc, xpath)
+			nodes, err := hq.QueryAll(doc, xpath)
+			if err != nil {
+				return nil, err
+			}
+			if len(nodes) == 1 {
+				return nodes[0], nil
+			}
+			for i := 0; i < len(nodes); i++ {
+				nodes[i].PrevSibling = nil
+				nodes[i].NextSibling = nil
+			}
+			root := &html.Node{
+				Type:       html.ElementNode,
+				FirstChild: nodes[0],
+				LastChild:  nodes[len(nodes)-1],
+			}
+			for i, child := 1, root.FirstChild; i < len(nodes); i++ {
+				child.NextSibling = nodes[i]
+				child.NextSibling.PrevSibling = child
+				child.PrevSibling = nodes[i-1]
+				child = child.NextSibling
+			}
+			return root, nil
 		},
 		Inner: func(n *html.Node) string {
-			return hq.InnerText(n)
+			switch n.Type {
+			case html.DocumentNode,
+				html.TextNode,
+				html.ErrorNode,
+				html.CommentNode,
+				html.DoctypeNode:
+				return hq.InnerText(n)
+			default:
+				if n.FirstChild == nil || (n.FirstChild.Type == html.TextNode && n.FirstChild.NextSibling == nil) {
+					return hq.InnerText(n)
+				} else {
+					return hq.OutputHTML(n, false)
+				}
+			}
 		},
 	}
 	x.Document = document
@@ -302,11 +436,12 @@ func (r *RegexExtractor) MatchStr() (string, error) {
 }
 
 // NewRegexExtractor creates a new RegexExtractor
-func NewRegexExtractor(document string) *RegexExtractor {
+func NewRegexExtractor(document string, docType DocType) *RegexExtractor {
 	x := &RegexExtractor{
 		BaseExtractor: BaseExtractor{
 			VarType:  String,
 			Document: document,
+			DocType:  docType,
 		},
 	}
 	x.ExtractStrFn = x.MatchStr

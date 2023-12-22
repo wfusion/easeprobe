@@ -31,19 +31,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/megaease/easeprobe/channel"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/notify"
-	"github.com/megaease/easeprobe/probe"
-	"github.com/megaease/easeprobe/probe/client"
-	"github.com/megaease/easeprobe/probe/host"
-	"github.com/megaease/easeprobe/probe/http"
-	"github.com/megaease/easeprobe/probe/ping"
-	"github.com/megaease/easeprobe/probe/shell"
-	"github.com/megaease/easeprobe/probe/ssh"
-	"github.com/megaease/easeprobe/probe/tcp"
-	"github.com/megaease/easeprobe/probe/tls"
-	"github.com/megaease/easeprobe/probe/websocket"
+	"github.com/wfusion/easeprobe/channel"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/notify"
+	"github.com/wfusion/easeprobe/probe"
+	"github.com/wfusion/easeprobe/probe/client"
+	"github.com/wfusion/easeprobe/probe/host"
+	"github.com/wfusion/easeprobe/probe/http"
+	"github.com/wfusion/easeprobe/probe/ping"
+	"github.com/wfusion/easeprobe/probe/shell"
+	"github.com/wfusion/easeprobe/probe/ssh"
+	"github.com/wfusion/easeprobe/probe/tcp"
+	"github.com/wfusion/easeprobe/probe/tls"
+	"github.com/wfusion/easeprobe/probe/websocket"
 
 	"github.com/invopop/jsonschema"
 	log "github.com/sirupsen/logrus"
@@ -80,6 +80,15 @@ var scheduleToString = map[Schedule]string{
 }
 
 var stringToSchedule = global.ReverseMap(scheduleToString)
+
+// PrometheusMode mode enum
+type PrometheusMode string
+
+// PrometheusMode
+const (
+	PrometheusModePull PrometheusMode = "pull"
+	PrometheusModePush PrometheusMode = "push"
+)
 
 // MarshalYAML marshal the configuration to yaml
 func (s Schedule) MarshalYAML() (interface{}, error) {
@@ -123,6 +132,13 @@ type HTTPServer struct {
 	AccessLog       Log           `yaml:"log" json:"log,omitempty" jsonschema:"title=Access Log,description=access log of the http server"`
 }
 
+// Prometheus is the settings of prometheus
+type Prometheus struct {
+	Mode         PrometheusMode `yaml:"mode" json:"mode" jsonschema:"type=string,enum=pull,enum=push,title=Prometheus Work Mode,description=the work mode of the prometheus, pull or push"`
+	Addr         string         `yaml:"addr" json:"addr" jsonschema:"type=string,title=Prometheus Push gateway address,description=the ip address of the prometheus pgw need to push,example=127.0.0.1:9001"`
+	PushInterval string         `yaml:"push_interval" json:"push_interval" jsonschema:"type=string,format=duration,title=Prometheus Push Interval,description=the interval of prometheus push mode,default=30s"`
+}
+
 // Settings is the EaseProbe configuration
 type Settings struct {
 	Name       string     `yaml:"name" json:"name,omitempty" jsonschema:"title=EaseProbe Name,description=The name of the EaseProbe instance,default=EaseProbe"`
@@ -135,6 +151,7 @@ type Settings struct {
 	Notify     Notify     `yaml:"notify" json:"notify,omitempty" jsonschema:"title=Notify Settings,description=The global notify settings of the EaseProbe instance"`
 	SLAReport  SLAReport  `yaml:"sla" json:"sla,omitempty" jsonschema:"title=SLA Report Settings,description=The SLA report settings of the EaseProbe instance"`
 	HTTPServer HTTPServer `yaml:"http" json:"http,omitempty" jsonschema:"title=HTTP Server Settings,description=The HTTP server settings of the EaseProbe instance"`
+	Prometheus Prometheus `yaml:"prometheus" json:"prometheus,omitempty" jsonschema:"title=Prometheus Settings,description=The Prometheus settings of the EaseProbe instance"`
 }
 
 // Conf is Probe configuration
@@ -168,7 +185,7 @@ func JSONSchema() (string, error) {
 			v := reflect.New(t)
 			vt := v.Elem().Type()
 			name = vt.PkgPath() + "/" + vt.Name()
-			name = strings.TrimPrefix(name, "github.com/megaease/easeprobe/")
+			name = strings.TrimPrefix(name, "github.com/wfusion/easeprobe/")
 			name = strings.ReplaceAll(name, "/", "_")
 			log.Debugf("The struct name has been replaced [%s ==> %s]", t.Name(), name)
 		}

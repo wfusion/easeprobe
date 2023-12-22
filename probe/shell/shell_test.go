@@ -24,11 +24,11 @@ import (
 	"reflect"
 	"testing"
 
-	"bou.ke/monkey"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe"
-	"github.com/megaease/easeprobe/probe/base"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe"
+	"github.com/wfusion/easeprobe/probe/base"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 )
 
 func createShell() *Shell {
@@ -71,13 +71,13 @@ func TestShell(t *testing.T) {
 	s.Config(global.ProbeSettings{})
 	assert.Equal(t, "shell", s.ProbeKind)
 
-	monkey.Patch(exec.CommandContext, func(ctx context.Context, name string, arg ...string) *exec.Cmd {
+	defer gomonkey.ApplyFunc(exec.CommandContext, func(ctx context.Context, name string, arg ...string) *exec.Cmd {
 		return &exec.Cmd{}
-	})
+	}).Reset()
 	var cmd *exec.Cmd
-	monkey.PatchInstanceMethod(reflect.TypeOf(cmd), "CombinedOutput", func(_ *exec.Cmd) ([]byte, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(cmd), "CombinedOutput", func(_ *exec.Cmd) ([]byte, error) {
 		return []byte("good"), nil
-	})
+	}).Reset()
 
 	status, message := s.DoProbe()
 	assert.True(t, status)
@@ -86,15 +86,14 @@ func TestShell(t *testing.T) {
 	// contains the bad output
 	s.Contain = ""
 	s.NotContain = "bad"
-	monkey.PatchInstanceMethod(reflect.TypeOf(cmd), "CombinedOutput", func(_ *exec.Cmd) ([]byte, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(cmd), "CombinedOutput", func(_ *exec.Cmd) ([]byte, error) {
 		return []byte("bad"), nil
-	})
+	}).Reset()
 	status, message = s.DoProbe()
 	assert.False(t, status)
 	assert.Contains(t, message, "bad")
 
 	// run command error
-	monkey.UnpatchAll()
 	//no exit code
 	status, message = s.DoProbe()
 	assert.False(t, status)

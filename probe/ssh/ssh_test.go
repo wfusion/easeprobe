@@ -26,11 +26,11 @@ import (
 	"testing"
 	"time"
 
-	"bou.ke/monkey"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe"
-	"github.com/megaease/easeprobe/probe/base"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe"
+	"github.com/wfusion/easeprobe/probe/base"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -169,40 +169,40 @@ func TestSSH(t *testing.T) {
 		}
 	}
 
-	monkey.Patch(ssh.Dial, func(network, addr string, config *ssh.ClientConfig) (*ssh.Client, error) {
+	defer gomonkey.ApplyFunc(ssh.Dial, func(network, addr string, config *ssh.ClientConfig) (*ssh.Client, error) {
 		c, _, _, _ := ssh.NewClientConn(nil, "", config)
 		return &ssh.Client{Conn: c}, nil
-	})
-	monkey.Patch(ssh.NewClient, func(c ssh.Conn, chans <-chan ssh.NewChannel, reqs <-chan *ssh.Request) *ssh.Client {
+	}).Reset()
+	defer gomonkey.ApplyFunc(ssh.NewClient, func(c ssh.Conn, chans <-chan ssh.NewChannel, reqs <-chan *ssh.Request) *ssh.Client {
 		c, _, _, _ = ssh.NewClientConn(nil, "", nil)
 		return &ssh.Client{Conn: c}
-	})
+	}).Reset()
 	var client *ssh.Client
-	monkey.PatchInstanceMethod(reflect.TypeOf(client), "Dial", func(c *ssh.Client, n, a string) (net.Conn, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(client), "Dial", func(c *ssh.Client, n, a string) (net.Conn, error) {
 		return &net.TCPConn{}, nil
-	})
+	}).Reset()
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(client), "Close", func(c *ssh.Client) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(client), "Close", func(c *ssh.Client) error {
 		return nil
-	})
+	}).Reset()
 
-	monkey.Patch(ssh.NewClientConn, func(c net.Conn, addr string, config *ssh.ClientConfig) (ssh.Conn, <-chan ssh.NewChannel, <-chan *ssh.Request, error) {
+	defer gomonkey.ApplyFunc(ssh.NewClientConn, func(c net.Conn, addr string, config *ssh.ClientConfig) (ssh.Conn, <-chan ssh.NewChannel, <-chan *ssh.Request, error) {
 		return &ssh.Client{}, nil, nil, nil
-	})
+	}).Reset()
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(client), "NewSession", func(c *ssh.Client) (*ssh.Session, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(client), "NewSession", func(c *ssh.Client) (*ssh.Session, error) {
 		return &ssh.Session{}, nil
 	})
 
 	var ss *ssh.Session
-	monkey.PatchInstanceMethod(reflect.TypeOf(ss), "Run", func(s *ssh.Session, cmd string) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(ss), "Run", func(s *ssh.Session, cmd string) error {
 		return nil
-	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(ss), "Close", func(c *ssh.Session) error {
+	}).Reset()
+	defer gomonkey.ApplyMethod(reflect.TypeOf(ss), "Close", func(c *ssh.Session) error {
 		return nil
-	})
+	}).Reset()
 
-	monkey.Patch(os.ReadFile, func(filename string) ([]byte, error) {
+	defer gomonkey.ApplyFunc(os.ReadFile, func(filename string) ([]byte, error) {
 		return []byte(`
 -----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAaAAAABNlY2RzYS
@@ -213,7 +213,7 @@ EbAAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBH1Zk94FK+LGSGNA
 EAAAAgBzKpRmMyXZ4jnSt3ARz0ul6R79AXAr5gQqDAmoFeEKwAAAAOYWpAYm93aWUubG9j
 YWwBAg==
 -----END OPENSSH PRIVATE KEY-----`), nil
-	})
+	}).Reset()
 
 	for _, s := range _ssh.Servers {
 		status, _ := s.DoProbe()
@@ -233,21 +233,21 @@ YWwBAg==
 		}
 	}
 	// session.Run failed
-	monkey.PatchInstanceMethod(reflect.TypeOf(ss), "Run", func(s *ssh.Session, cmd string) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(ss), "Run", func(s *ssh.Session, cmd string) error {
 		return errors.New("session.Run failed")
-	})
+	}).Reset()
 	checkServer(false, "session.Run failed")
 
 	// client.NewSession failed
-	monkey.PatchInstanceMethod(reflect.TypeOf(client), "NewSession", func(c *ssh.Client) (*ssh.Session, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(client), "NewSession", func(c *ssh.Client) (*ssh.Session, error) {
 		return nil, errors.New("client.NewSession failed")
-	})
+	}).Reset()
 	checkServer(false, "client.NewSession failed")
 
 	// NewClientConn failed
-	monkey.Patch(ssh.NewClientConn, func(c net.Conn, addr string, config *ssh.ClientConfig) (ssh.Conn, <-chan ssh.NewChannel, <-chan *ssh.Request, error) {
+	defer gomonkey.ApplyFunc(ssh.NewClientConn, func(c net.Conn, addr string, config *ssh.ClientConfig) (ssh.Conn, <-chan ssh.NewChannel, <-chan *ssh.Request, error) {
 		return &ssh.Client{}, nil, nil, errors.New("NewClientConn failed")
-	})
+	}).Reset()
 	for _, s := range _ssh.Servers {
 		if s.bastion != nil {
 			status, message := s.DoProbe()
@@ -257,9 +257,9 @@ YWwBAg==
 	}
 
 	// ssh Client Dial failed
-	monkey.PatchInstanceMethod(reflect.TypeOf(client), "Dial", func(c *ssh.Client, n, a string) (net.Conn, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(client), "Dial", func(c *ssh.Client, n, a string) (net.Conn, error) {
 		return nil, errors.New("ssh Client Dial failed")
-	})
+	}).Reset()
 	for _, s := range _ssh.Servers {
 		if s.bastion != nil {
 			status, message := s.DoProbe()
@@ -269,11 +269,10 @@ YWwBAg==
 	}
 
 	// SSHConfig failed - no bastion
-	var guard *monkey.PatchGuard
+	var guard *gomonkey.Patches
 	var ed *Endpoint
-	guard = monkey.PatchInstanceMethod(reflect.TypeOf(ed), "SSHConfig", func(e *Endpoint, kind, name string, timeout time.Duration) (*ssh.ClientConfig, error) {
-		guard.Unpatch()
-		defer guard.Restore()
+	guard = gomonkey.ApplyMethod(reflect.TypeOf(ed), "SSHConfig", func(e *Endpoint, kind, name string, timeout time.Duration) (*ssh.ClientConfig, error) {
+		defer guard.Reset()
 		if strings.Contains(e.Host, "bastion") {
 			return e.SSHConfig(kind, name, timeout)
 		}
@@ -282,27 +281,27 @@ YWwBAg==
 	checkServer(false, "SSHConfig failed")
 
 	// SSHConfig failed
-	monkey.PatchInstanceMethod(reflect.TypeOf(ed), "SSHConfig", func(e *Endpoint, kind, name string, timeout time.Duration) (*ssh.ClientConfig, error) {
+	patchSSHConfig := gomonkey.ApplyMethod(reflect.TypeOf(ed), "SSHConfig", func(e *Endpoint, kind, name string, timeout time.Duration) (*ssh.ClientConfig, error) {
 		return nil, errors.New("SSHConfig failed")
 	})
 	checkServer(false, "SSHConfig failed")
 
 	// ssh Dial failed
-	monkey.UnpatchInstanceMethod(reflect.TypeOf(ed), "SSHConfig")
-	monkey.Patch(ssh.Dial, func(network, addr string, config *ssh.ClientConfig) (*ssh.Client, error) {
+	patchSSHConfig.Reset()
+	defer gomonkey.ApplyFunc(ssh.Dial, func(network, addr string, config *ssh.ClientConfig) (*ssh.Client, error) {
 		return nil, errors.New("ssh Dial failed")
 	})
 	checkServer(false, "ssh Dial failed")
 
 	var s *Server
-	monkey.PatchInstanceMethod(reflect.TypeOf(s), "RunSSHCmd", func(s *Server) (string, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(s), "RunSSHCmd", func(s *Server) (string, error) {
 		if s.bastion != nil {
 			return "ExitMissingError", &ssh.ExitMissingError{}
 		}
 		return "ExitError", &ssh.ExitError{
 			Waitmsg: ssh.Waitmsg{},
 		}
-	})
+	}).Reset()
 	for _, s := range _ssh.Servers {
 		status, message := s.DoProbe()
 		if s.bastion != nil {
@@ -314,7 +313,6 @@ YWwBAg==
 		}
 	}
 
-	monkey.UnpatchAll()
 	status, _ := _ssh.Servers[1].DoProbe()
 	assert.Equal(t, false, status)
 }

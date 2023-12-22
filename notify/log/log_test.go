@@ -22,10 +22,10 @@ import (
 	"os"
 	"testing"
 
-	"bou.ke/monkey"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/report"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/report"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 )
 
 func assertError(t *testing.T, err error, msg string, contain bool) {
@@ -51,11 +51,10 @@ func TestLogFile(t *testing.T) {
 
 	os.RemoveAll(conf.File)
 
-	monkey.Patch(os.OpenFile, func(_ string, _ int, _ os.FileMode) (*os.File, error) {
+	defer gomonkey.ApplyFunc(os.OpenFile, func(_ string, _ int, _ os.FileMode) (*os.File, error) {
 		return nil, errors.New("open file error")
-	})
+	}).Reset()
 	err = conf.Config(global.NotifySettings{})
 	assertError(t, err, "open file error", false)
 
-	monkey.UnpatchAll()
 }

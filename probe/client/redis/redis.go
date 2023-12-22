@@ -24,8 +24,8 @@ import (
 	"fmt"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/megaease/easeprobe/probe/client/conf"
 	log "github.com/sirupsen/logrus"
+	"github.com/wfusion/easeprobe/probe/client/conf"
 )
 
 // Kind is the type of driver

@@ -25,11 +25,11 @@ import (
 	"testing"
 	"time"
 
-	"bou.ke/monkey"
 	"github.com/go-sql-driver/mysql"
-	"github.com/megaease/easeprobe/global"
-	"github.com/megaease/easeprobe/probe/client/conf"
 	"github.com/stretchr/testify/assert"
+	"github.com/wfusion/easeprobe/global"
+	"github.com/wfusion/easeprobe/probe/client/conf"
+	"github.com/wfusion/gofusion/common/utils/gomonkey"
 )
 
 func TestMySQL(t *testing.T) {
@@ -64,23 +64,23 @@ func TestMySQL(t *testing.T) {
 		conf.Username, conf.Host, conf.Timeout().Round(time.Second))
 	assert.Equal(t, connStr, my.ConnStr)
 
-	monkey.Patch(sql.Open, func(driverName, dataSourceName string) (*sql.DB, error) {
+	defer gomonkey.ApplyFunc(sql.Open, func(driverName, dataSourceName string) (*sql.DB, error) {
 		return &sql.DB{}, nil
-	})
+	}).Reset()
 	var db *sql.DB
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Close", func(_ *sql.DB) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(db), "Close", func(_ *sql.DB) error {
 		return nil
-	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Ping", func(_ *sql.DB) error {
+	}).Reset()
+	defer gomonkey.ApplyMethod(reflect.TypeOf(db), "Ping", func(_ *sql.DB) error {
 		return nil
-	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Query", func(_ *sql.DB, query string, args ...interface{}) (*sql.Rows, error) {
+	}).Reset()
+	defer gomonkey.ApplyMethod(reflect.TypeOf(db), "Query", func(_ *sql.DB, query string, args ...interface{}) (*sql.Rows, error) {
 		return &sql.Rows{}, nil
-	})
+	}).Reset()
 	var r *sql.Rows
-	monkey.PatchInstanceMethod(reflect.TypeOf(r), "Close", func(_ *sql.Rows) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(r), "Close", func(_ *sql.Rows) error {
 		return nil
-	})
+	}).Reset()
 
 	s, m := my.Probe()
 	assert.True(t, s)
@@ -88,12 +88,12 @@ func TestMySQL(t *testing.T) {
 
 	// TLS config success
 	var tc *global.TLS
-	monkey.PatchInstanceMethod(reflect.TypeOf(tc), "Config", func(_ *global.TLS) (*tls.Config, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(tc), "Config", func(_ *global.TLS) (*tls.Config, error) {
 		return &tls.Config{}, nil
-	})
-	monkey.Patch(mysql.RegisterTLSConfig, func(name string, config *tls.Config) error {
+	}).Reset()
+	defer gomonkey.ApplyFunc(mysql.RegisterTLSConfig, func(name string, config *tls.Config) error {
 		return nil
-	})
+	}).Reset()
 
 	my, err = New(conf)
 	assert.NotNil(t, my.tls)
@@ -102,40 +102,39 @@ func TestMySQL(t *testing.T) {
 	assert.Contains(t, m, "Successfully")
 
 	//  Query error
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Query", func(_ *sql.DB, query string, args ...interface{}) (*sql.Rows, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(db), "Query", func(_ *sql.DB, query string, args ...interface{}) (*sql.Rows, error) {
 		return nil, fmt.Errorf("query error")
-	})
+	}).Reset()
 	s, m = my.Probe()
 	assert.False(t, s)
 	assert.Contains(t, m, "query error")
 
 	// Ping error
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Ping", func(_ *sql.DB) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(db), "Ping", func(_ *sql.DB) error {
 		return fmt.Errorf("ping error")
-	})
+	}).Reset()
 	s, m = my.Probe()
 	assert.False(t, s)
 	assert.Contains(t, m, "ping error")
 
 	// Connect error
-	monkey.Patch(sql.Open, func(driverName, dataSourceName string) (*sql.DB, error) {
+	defer gomonkey.ApplyFunc(sql.Open, func(driverName, dataSourceName string) (*sql.DB, error) {
 		return nil, fmt.Errorf("connect error")
-	})
+	}).Reset()
 	s, m = my.Probe()
 	assert.False(t, s)
 	assert.Contains(t, m, "connect error")
 
-	monkey.UnpatchAll()
 }
 
 func TestData(t *testing.T) {
-	monkey.Patch(sql.Open, func(driverName, dataSourceName string) (*sql.DB, error) {
+	defer gomonkey.ApplyFunc(sql.Open, func(driverName, dataSourceName string) (*sql.DB, error) {
 		return &sql.DB{}, nil
-	})
+	}).Reset()
 	var db *sql.DB
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Close", func(_ *sql.DB) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(db), "Close", func(_ *sql.DB) error {
 		return nil
-	})
+	}).Reset()
 
 	conf := conf.Options{
 		Host:       "example.com",
@@ -164,24 +163,24 @@ func TestData(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "the value must be int")
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Ping", func(_ *sql.DB) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(db), "Ping", func(_ *sql.DB) error {
 		return nil
-	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Query", func(_ *sql.DB, query string, args ...interface{}) (*sql.Rows, error) {
+	}).Reset()
+	defer gomonkey.ApplyMethod(reflect.TypeOf(db), "Query", func(_ *sql.DB, query string, args ...interface{}) (*sql.Rows, error) {
 		return &sql.Rows{}, nil
-	})
+	}).Reset()
 	var r *sql.Rows
-	monkey.PatchInstanceMethod(reflect.TypeOf(r), "Close", func(_ *sql.Rows) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(r), "Close", func(_ *sql.Rows) error {
 		return nil
-	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(r), "Next", func(_ *sql.Rows) bool {
+	}).Reset()
+	defer gomonkey.ApplyMethod(reflect.TypeOf(r), "Next", func(_ *sql.Rows) bool {
 		return true
-	})
-	monkey.PatchInstanceMethod(reflect.TypeOf(r), "Scan", func(_ *sql.Rows, args ...interface{}) error {
+	}).Reset()
+	defer gomonkey.ApplyMethod(reflect.TypeOf(r), "Scan", func(_ *sql.Rows, args ...interface{}) error {
 		v := args[0].(*string)
 		*v = "expected"
 		return nil
-	})
+	}).Reset()
 
 	conf.Data = map[string]string{
 		"database:table:column:key:1": "expected",
@@ -192,35 +191,35 @@ func TestData(t *testing.T) {
 	assert.Contains(t, m, "Successfully")
 
 	//mismatch
-	monkey.PatchInstanceMethod(reflect.TypeOf(r), "Scan", func(_ *sql.Rows, args ...interface{}) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(r), "Scan", func(_ *sql.Rows, args ...interface{}) error {
 		v := args[0].(*string)
 		*v = "unexpected"
 		return nil
-	})
+	}).Reset()
 	s, m = my.Probe()
 	assert.False(t, s)
 	assert.Contains(t, m, "alue not match")
 
 	// scan error
-	monkey.PatchInstanceMethod(reflect.TypeOf(r), "Scan", func(_ *sql.Rows, args ...interface{}) error {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(r), "Scan", func(_ *sql.Rows, args ...interface{}) error {
 		return fmt.Errorf("scan error")
-	})
+	}).Reset()
 	s, m = my.Probe()
 	assert.False(t, s)
 	assert.Contains(t, m, "scan error")
 
 	// Next error
-	monkey.PatchInstanceMethod(reflect.TypeOf(r), "Next", func(_ *sql.Rows) bool {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(r), "Next", func(_ *sql.Rows) bool {
 		return false
-	})
+	}).Reset()
 	s, m = my.Probe()
 	assert.False(t, s)
 	assert.Contains(t, m, "No data")
 
 	// Query error
-	monkey.PatchInstanceMethod(reflect.TypeOf(db), "Query", func(_ *sql.DB, query string, args ...interface{}) (*sql.Rows, error) {
+	defer gomonkey.ApplyMethod(reflect.TypeOf(db), "Query", func(_ *sql.DB, query string, args ...interface{}) (*sql.Rows, error) {
 		return nil, fmt.Errorf("query error")
-	})
+	}).Reset()
 	s, m = my.Probe()
 	assert.False(t, s)
 	assert.Contains(t, m, "query error")
@@ -231,7 +230,5 @@ func TestData(t *testing.T) {
 	s, m = my.Probe()
 	assert.False(t, s)
 	assert.Contains(t, m, "Invalid SQL data")
-
-	monkey.UnpatchAll()
 
 }
